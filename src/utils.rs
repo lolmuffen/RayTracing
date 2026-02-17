@@ -5,24 +5,29 @@
 //! the ray tracer including random number generation, coordinate transformations,
 //! and interval arithmetic for robust intersection testing.
 
-use rand::Rng;
-use crate::vector::Vec3;
-use std::sync::{Arc, Mutex};
+use rand::RngExt;
+use crate::{shape::Shape, vector::Vec3};
+use std::sync::{Arc, Mutex, OnceLock};
+use crate::BVH::sceneBVH;
 
 
 // =============================================================================
 // Random Number Generation
 // =============================================================================
 
+
+
 /// Generates a random floating-point number in the range [0, 1).
 pub fn random_double() -> f32 {
     let mut rng = rand::rng();
-    rng.random::<f32>()
+    let x: f32 = rng.random();
+    return x;
 }
 
 pub fn random_double_range(min: f32, max: f32) -> f32 {
     let mut rng = rand::rng();
-    rng.random_range(min..max)
+    let y: f32 = rng.random_range(min..max);
+    return y;
 }
 
 /// Generates a random 2D offset within a unit square for anti-aliasing.
@@ -87,11 +92,19 @@ impl Interval {
 
 pub struct Global { 
     pub global_object_id: Arc<Mutex<u32>>,
+    pub global_object_list: OnceLock<Vec<Box<dyn Shape + Send + Sync>>>,
+    pub BVH_DEPTH_LIMIT: usize,
+    pub Scene: Arc<Mutex<sceneBVH>>
 }
 
 impl Global {
     pub fn new() -> Global {
-        Global { global_object_id: Arc::new(Mutex::new(0)) }
+        Global { 
+            global_object_id: Arc::new(Mutex::new(0)), 
+            global_object_list: OnceLock::new(),
+            BVH_DEPTH_LIMIT: 20, // Default depth limit for BVH tree
+            Scene: Arc::new(Mutex::new(sceneBVH::new())), // Initialize empty BVH tree
+        }
     }
 
     pub fn next_object_id(&self) -> u32 {
@@ -99,6 +112,19 @@ impl Global {
         *guard += 1;
         *guard
     }
+
+    pub fn set_objects(&self, objects: Vec<Box<dyn Shape + Send + Sync>>) -> Result<(), Vec<Box<dyn Shape + Send + Sync>>> {
+        self.global_object_list.set(objects)
+    }
+
+    pub fn get_objects(&self) -> Option<&Vec<Box<dyn Shape + Send + Sync>>> {
+        self.global_object_list.get()
+    }
+
+    pub fn get_object_by_id(&self, id: u32) -> Option<&Box<dyn Shape + Send + Sync>> {
+        self.global_object_list.get()?.iter().find(|obj| obj.get_id() == id)
+    }
+
 }
 
 // Global instance accessor

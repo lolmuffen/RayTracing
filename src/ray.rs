@@ -6,11 +6,15 @@ pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
     pub color: Vec3,
+    pub(crate) inv_dir: Vec3, // Precompute inverse direction for faster intersection tests
     
 }
 
 impl Ray {
     pub fn new(origin: Vec3, direction: Vec3, color: Vec3) -> Ray {
-        Ray { origin, direction, color }
+        let inv_dir = Vec3::new(1.0 / direction.x, 1.0 / direction.y, 1.0 / direction.z);
+        Ray { origin, direction, color, inv_dir }
+
     }
+
 }

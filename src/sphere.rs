@@ -15,17 +15,40 @@ pub struct Sphere {
 
 impl Sphere {
     pub fn new(position: Vec3, radius: f32, color: Vec3, material: Material) -> Sphere {
-        Sphere { 
+        let sphere = Sphere {
             ID: GLOBAL.next_object_id(), 
             position, 
             radius, 
             color, 
             material 
-        }
+        };
+        sphere
     }
 }
 
+
 impl Shape for Sphere {
+
+    fn get_id(&self) -> u32 {
+        return self.ID;
+    }
+
+    fn get_max_bounds(&self) -> Vec3 {
+        Vec3::new(
+            self.position.x + self.radius,
+            self.position.y + self.radius,
+            self.position.z + self.radius,
+        )
+    }
+
+    fn get_min_bounds(&self) -> Vec3 {
+        Vec3::new(
+            self.position.x - self.radius,
+            self.position.y - self.radius,
+            self.position.z - self.radius,
+        )
+    }
+
     fn intersect(&self, ray: &Ray) -> Intersection {
         let oc = ray.origin - self.position;
         let a = ray.direction.dot(ray.direction);
