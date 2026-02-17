@@ -78,7 +78,7 @@ impl Vec3 {
 
     /// Returns a unit vector in the same direction.
     /// Essential for surface normals and ray directions.
-    pub fn normalized(self) -> Self {
+    pub fn normalize(self) -> Self {
         let len = self.length();
         self / len
     }

@@ -7,6 +7,7 @@
 
 use rand::Rng;
 use crate::vector::Vec3;
+use std::sync::{Arc, Mutex};
 
 
 // =============================================================================
@@ -77,4 +78,30 @@ impl Interval {
             x
         }
     }
+}
+
+// =============================================================================
+// Global Variables and Constants
+// =============================================================================
+
+
+pub struct Global { 
+    pub global_object_id: Arc<Mutex<u32>>,
+}
+
+impl Global {
+    pub fn new() -> Global {
+        Global { global_object_id: Arc::new(Mutex::new(0)) }
+    }
+
+    pub fn next_object_id(&self) -> u32 {
+        let mut guard = self.global_object_id.lock().unwrap();
+        *guard += 1;
+        *guard
+    }
+}
+
+// Global instance accessor
+lazy_static::lazy_static! {
+    pub static ref GLOBAL: Global = Global::new();
 }

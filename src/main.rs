@@ -1,5 +1,11 @@
 mod vector;
 mod utils;
+mod ray;
+mod range;
+mod sphere;
+mod material;
+mod intersection;
+mod shape;
 
 use crate::vector::Vec3;
 
