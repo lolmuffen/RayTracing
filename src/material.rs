@@ -10,7 +10,7 @@ pub trait Material: Send + Sync {
     /// Returns Option containing:
     /// - attenuation (color): how much light is absorbed/reflected
     /// - scattered_ray: the resulting ray direction after interaction
-    fn scatter(&self, ray_in: &Ray, hit_rec: Intersection) -> Option<(Vec3, Ray)>;
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)>;
     
     /// Optional emitted light from this material
     fn emitted(&self) -> Vec3 {
@@ -31,8 +31,12 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray_in: &Ray, hit_rec: Intersection) -> Option<(Vec3, Ray)> {
-        let hitdata = &hit_rec.hitdata.unwrap();
+    fn scatter(&self, _ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+
+        let hitdata = match hit_rec.hitdata.clone() {
+            Some(data) => data,
+            None => return None, // No hit data, cannot scatter
+        };
         let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
         
         let scattered = Ray::new(
@@ -66,8 +70,11 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray_in: &Ray, hit_rec: Intersection) -> Option<(Vec3, Ray)> {
-        let hitdata = &hit_rec.hitdata.unwrap();
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+        let hitdata = match hit_rec.hitdata.clone() {
+            Some(data) => data,
+            None => return None, // No hit data, cannot scatter
+        };
         
         let reflected = Metal::reflect(ray_in.direction.normalize(), hitdata.normal);
         
@@ -123,8 +130,11 @@ impl Glass {
 }
 
 impl Material for Glass {
-    fn scatter(&self, ray_in: &Ray, hit_rec: Intersection) -> Option<(Vec3, Ray)> {
-        let hitdata = &hit_rec.hitdata.unwrap();
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+        let hitdata = match hit_rec.hitdata.clone() {
+            Some(data) => data,
+            None => return None, // No hit data, cannot scatter
+        };
         let outward_normal = if ray_in.direction.dot(hitdata.normal) > 0.0 {
             -hitdata.normal
         } else {
@@ -173,8 +183,11 @@ impl Volume {
 }
 
 impl Material for Volume {
-    fn scatter(&self, ray_in: &Ray, hit_rec: Intersection) -> Option<(Vec3, Ray)> {
-        let hitdata = &hit_rec.hitdata.unwrap();
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+        let hitdata = match hit_rec.hitdata.clone() {
+            Some(data) => data,
+            None => return None, // No hit data, cannot scatter
+        };
         // Simple volumetric scattering - attenuate the ray and scatter in a random direction
         let attenuation = self.color * self.density;
         let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
@@ -192,7 +205,7 @@ impl Default {
 }
 
 impl Material for Default {
-    fn scatter(&self, _ray_in: &Ray, _hit_rec: Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, _ray_in: &Ray, _hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
         None // No scattering, fully absorbs light
     }
 }

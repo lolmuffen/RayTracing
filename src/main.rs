@@ -75,9 +75,10 @@ fn main() {
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
     let samples_per_pixel: u32 = 5;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
+    let light_samples: u32 = 5;              // Number of samples for direct illumination (higher = softer shadows)
 
     // Create the virtual camera with specified parameters
-    let cam = Camera::new(Vec3::zero(), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), 80, samples_per_pixel, max_depth as u32);
+    let cam = Camera::new(Vec3::zero(), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), 80, samples_per_pixel, max_depth as u32, light_samples);
 
     // =============================================================================
     // Rendering Execution
