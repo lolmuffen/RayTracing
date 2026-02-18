@@ -1,6 +1,4 @@
-
-use crate::camera::Color;
-use crate::material::Material;
+use crate::material::Default;
 use crate::vector::Vec3;
 use crate::sphere::Sphere;
 use crate::ray::Ray;
@@ -16,7 +14,7 @@ pub struct SphereLight {
 
 impl SphereLight {
     pub fn new(position: Vec3, radius: f32, color: Vec3, intensity: f32) -> Self {
-       SphereLight { ID: get_GLOBAL().next_light_id(), structure: Sphere { ID: 0, position, radius, color, material: Material::new(false, 0.0, Color::zero(), 0.0, 0.0)}, intensity, color }
+       SphereLight { ID: get_GLOBAL().next_light_id(), structure: Sphere { ID: 0, position, radius, color, material: Box::new(Default::new()) }, intensity, color }
     }
 
     pub fn sample_sphere_light(&self, pos: Vec3) -> Ray {
@@ -42,9 +40,21 @@ impl Light for SphereLight {
     fn get_id(&self) -> u32 {
         self.ID
     }
+    fn get_position(&self) -> Vec3 {
+        return self.structure.position;
+    }
+    fn get_color(&self) -> Vec3 {
+        return self.color;
+    }
+    fn get_intensity(&self) -> f32 {
+        return self.intensity;
+    }
 }
 
 pub trait Light {
     fn sample_light(&self, pos: Vec3) -> Ray;
     fn get_id(&self) -> u32;
+    fn get_position(&self) -> Vec3;
+    fn get_intensity(&self) -> f32;
+    fn get_color(&self) -> Vec3;
 }

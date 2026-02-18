@@ -138,26 +138,26 @@ impl sceneBVH {
                 if let Some(shape) = get_GLOBAL().get_object_by_id(id) {
                     let inter = shape.intersect(ray);
                     if inter.hit {
-                        if let Some(hits) = inter.hits {
-                            for h in hits.into_iter() {
-                                if h.distance > 0.001 {
-                                    let is_better = match &best_hit {
-                                        Some(bh) => h.distance < bh.distance,
-                                        None => true,
-                                    };
-                                    if is_better {
-                                        best_hit = Some(Hit::new(h.distance, h.hit_point, h.normal));
-                                        best_obj_id = inter.object_id;
-                                    }
+                        if let Some(hits) = inter.hitdata {
+                            let h = hits;
+                            if h.distance > 0.001 {
+                                let is_better = match &best_hit {
+                                    Some(bh) => h.distance < bh.distance,
+                                    None => true,
+                                };
+                                if is_better {
+                                    best_hit = Some(Hit::new(h.distance, h.hit_point, h.normal));
+                                    best_obj_id = inter.object_id;
                                 }
                             }
+                            
                         }
                     }
                 }
             }
 
             if let Some(h) = best_hit {
-                return Some(Intersection::new(true, Some(vec![h]), best_obj_id));
+                return Some(Intersection::new(true, Some(h), best_obj_id));
             }
 
             return None;
@@ -178,8 +178,8 @@ impl sceneBVH {
         match (left_hit, right_hit) {
             (Some(l), Some(r)) => {
                 // pick nearer of the two
-                let ld = l.hits.as_ref().and_then(|v| v.get(0)).map(|h| h.distance).unwrap_or(f32::INFINITY);
-                let rd = r.hits.as_ref().and_then(|v| v.get(0)).map(|h| h.distance).unwrap_or(f32::INFINITY);
+                let ld = l.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
+                let rd = r.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
                 if ld <= rd { Some(l) } else { Some(r) }
             }
             (Some(l), None) => Some(l),
@@ -189,23 +189,7 @@ impl sceneBVH {
     }
 }
 
-impl Shape for sceneBVH {
-    fn get_id(&self) -> u32 {
-        self.ID as u32
-    }
 
-    fn get_max_bounds(&self) -> Vec3 {
-        self.bounding_box.max
-    }
-
-    fn get_min_bounds(&self) -> Vec3 {
-        self.bounding_box.min
-    }
-
-    fn intersect(&self, ray: &Ray) -> Intersection {
-        self.traverse(ray).unwrap_or(Intersection::new(false, None, None))
-    }
-}
 
 pub struct BoundingBox {
     pub min: Vec3,

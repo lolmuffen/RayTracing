@@ -1,6 +1,7 @@
 
 use crate::vector::Vec3;
 
+#[derive(Debug, Clone)]
 pub struct Hit {
     pub distance: f32,           
     pub hit_point: Vec3,        
@@ -13,14 +14,15 @@ impl Hit {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Intersection {
     pub hit: bool,
-    pub hits: Option<Vec<Hit>>,
+    pub hitdata: Option<Hit>,
     pub object_id: Option<u32>,
 }
 
 impl Intersection {
-    pub fn new(hit: bool, hits: Option<Vec<Hit>>, object_id: Option<u32>) -> Intersection {
-        Intersection { hit, hits, object_id }
+    pub fn new(hit: bool, hitdata: Option<Hit>, object_id: Option<u32>) -> Intersection {
+        Intersection { hit, hitdata, object_id }
     }
 }

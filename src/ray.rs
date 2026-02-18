@@ -6,7 +6,7 @@ pub struct Ray {
     pub origin: Vec3,
     pub direction: Vec3,
     pub color: Vec3,
-    pub(crate) inv_dir: Vec3, // Precompute inverse direction for faster intersection tests
+    pub inv_dir: Vec3, // Precompute inverse direction for faster intersection tests
     
 }
 

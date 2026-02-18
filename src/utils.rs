@@ -96,35 +96,27 @@ pub struct Global {
     pub global_object_id: Arc<Mutex<u32>>,
     pub global_object_list: OnceLock<Vec<Box<dyn Shape + Send + Sync>>>,
     pub global_light_id: Arc<Mutex<u32>>,
+    pub global_light_list: OnceLock<Vec<Box<dyn Light + Send + Sync>>>,
     pub BVH_DEPTH_LIMIT: usize,
     pub scene: OnceLock<sceneBVH>,
-    pub lights: OnceLock<Vec<Box<dyn Light + Send + Sync>>>,
+    pub bounce_depth_limit: Arc<Mutex<u32>>,
 }
 
 impl Global {
-    pub fn init(objects: Vec<Box<dyn Shape + Send + Sync>>, lights: Vec<Box<dyn Light + Send + Sync>>){
+    pub fn init(){
         let global = Global { 
             global_object_id: Arc::new(Mutex::new(0)), 
             global_object_list: OnceLock::new(),
             global_light_id: Arc::new(Mutex::new(0)),
+            global_light_list: OnceLock::new(),
             BVH_DEPTH_LIMIT: 20, // Default depth limit for BVH tree
             scene: OnceLock::new(), // Initialize empty BVH tree
-            lights: OnceLock::new(), // Initialize empty light list
+            bounce_depth_limit: Arc::new(Mutex::new(16)), // Initialize empty bounce depth limit
         };
         
         let r1: Result<(), Global> = GLOBAL.set(global); // Set the global instance
-
-        let r2: Result<(), Vec<Box<dyn Shape + Send + Sync>>> = get_GLOBAL().set_objects(objects);
-        let r3: Result<(), Vec<Box<dyn Light + Send + Sync>>> = get_GLOBAL().lights.set(lights);
-        let r4: Result<(), sceneBVH> = get_GLOBAL().scene.set(sceneBVH::new()); // Build BVH tree from global objects
-
-        match (r1, r2, r3, r4) {
-            (Ok(_), Ok(_), Ok(_), Ok(_)) => println!("Global instance initialized successfully."),
-            (Err(_), _, _, _) => panic!("Global instance was already initialized."),
-            (_, Err(_), _, _) => panic!("Failed to set global objects."),
-            (_, _, Err(_), _) => panic!("Failed to set global lights."),
-            (_, _, _, Err(_)) => panic!("Failed to set global BVH tree."),
-
+        if r1.is_err() {
+            panic!("Global instance already initialized");
         }
     }
 
@@ -144,6 +136,10 @@ impl Global {
         self.global_object_list.set(objects)
     }
 
+    pub fn set_lights(&self, lights: Vec<Box<dyn Light + Send + Sync>>) -> Result<(), Vec<Box<dyn Light + Send + Sync>>> {
+        self.global_light_list.set(lights)
+    }
+
     pub fn get_objects(&self) -> Option<&Vec<Box<dyn Shape + Send + Sync>>> {
         self.global_object_list.get()
     }
@@ -153,9 +149,21 @@ impl Global {
     }
 
     pub fn get_light_by_id(&self, id: u32) -> Option<&Box<dyn Light + Send + Sync>> {
-        self.lights.get()?.iter().find(|light| light.get_id() == id)
+        self.global_light_list.get()?.iter().find(|light| light.get_id() == id)
     }
 
+    pub fn get_depth_limit(&self) -> u32 {
+        let guard = self.bounce_depth_limit.lock().unwrap();
+        *guard
+    }
+
+    pub fn get_scene(&self) -> &sceneBVH {
+        self.scene.get().expect("Scene not initialized")
+    }
+
+    pub fn get_lights(&self) -> Option<&Vec<Box<dyn Light + Send + Sync>>> {
+        self.global_light_list.get()
+    }
 }
 
 // Global instance accessor
