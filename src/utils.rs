@@ -6,9 +6,11 @@
 //! and interval arithmetic for robust intersection testing.
 
 use rand::RngExt;
+use crate::main;
 use crate::{shape::Shape, vector::Vec3};
 use std::sync::{Arc, Mutex, OnceLock};
 use crate::BVH::sceneBVH;
+use crate::light::Light;
 
 
 // =============================================================================
@@ -93,22 +95,47 @@ impl Interval {
 pub struct Global { 
     pub global_object_id: Arc<Mutex<u32>>,
     pub global_object_list: OnceLock<Vec<Box<dyn Shape + Send + Sync>>>,
+    pub global_light_id: Arc<Mutex<u32>>,
     pub BVH_DEPTH_LIMIT: usize,
-    pub Scene: Arc<Mutex<sceneBVH>>
+    pub scene: OnceLock<sceneBVH>,
+    pub lights: OnceLock<Vec<Box<dyn Light + Send + Sync>>>,
 }
 
 impl Global {
-    pub fn new() -> Global {
-        Global { 
+    pub fn init(objects: Vec<Box<dyn Shape + Send + Sync>>, lights: Vec<Box<dyn Light + Send + Sync>>){
+        let global = Global { 
             global_object_id: Arc::new(Mutex::new(0)), 
             global_object_list: OnceLock::new(),
+            global_light_id: Arc::new(Mutex::new(0)),
             BVH_DEPTH_LIMIT: 20, // Default depth limit for BVH tree
-            Scene: Arc::new(Mutex::new(sceneBVH::new())), // Initialize empty BVH tree
+            scene: OnceLock::new(), // Initialize empty BVH tree
+            lights: OnceLock::new(), // Initialize empty light list
+        };
+        
+        let r1: Result<(), Global> = GLOBAL.set(global); // Set the global instance
+
+        let r2: Result<(), Vec<Box<dyn Shape + Send + Sync>>> = get_GLOBAL().set_objects(objects);
+        let r3: Result<(), Vec<Box<dyn Light + Send + Sync>>> = get_GLOBAL().lights.set(lights);
+        let r4: Result<(), sceneBVH> = get_GLOBAL().scene.set(sceneBVH::new()); // Build BVH tree from global objects
+
+        match (r1, r2, r3, r4) {
+            (Ok(_), Ok(_), Ok(_), Ok(_)) => println!("Global instance initialized successfully."),
+            (Err(_), _, _, _) => panic!("Global instance was already initialized."),
+            (_, Err(_), _, _) => panic!("Failed to set global objects."),
+            (_, _, Err(_), _) => panic!("Failed to set global lights."),
+            (_, _, _, Err(_)) => panic!("Failed to set global BVH tree."),
+
         }
     }
 
     pub fn next_object_id(&self) -> u32 {
         let mut guard = self.global_object_id.lock().unwrap();
+        *guard += 1;
+        *guard
+    }
+
+    pub fn next_light_id(&self) -> u32 {
+        let mut guard = self.global_light_id.lock().unwrap();
         *guard += 1;
         *guard
     }
@@ -125,9 +152,17 @@ impl Global {
         self.global_object_list.get()?.iter().find(|obj| obj.get_id() == id)
     }
 
+    pub fn get_light_by_id(&self, id: u32) -> Option<&Box<dyn Light + Send + Sync>> {
+        self.lights.get()?.iter().find(|light| light.get_id() == id)
+    }
+
 }
 
 // Global instance accessor
 lazy_static::lazy_static! {
-    pub static ref GLOBAL: Global = Global::new();
+    pub static ref GLOBAL: OnceLock<Global> = OnceLock::new();
+}
+
+pub fn get_GLOBAL() -> &'static Global {
+    GLOBAL.get().expect("Global instance not initialized")
 }

@@ -1,6 +1,6 @@
 use crate::vector::Vec3;
 use crate::material::Material;
-use crate::utils::GLOBAL;
+use crate::utils::{get_GLOBAL};
 use crate::ray::Ray;
 use crate::shape::Shape;
 use crate::intersection::{Hit, Intersection};
@@ -16,7 +16,7 @@ pub struct Sphere {
 impl Sphere {
     pub fn new(position: Vec3, radius: f32, color: Vec3, material: Material) -> Sphere {
         let sphere = Sphere {
-            ID: GLOBAL.next_object_id(), 
+            ID: get_GLOBAL().next_object_id(), 
             position, 
             radius, 
             color, 

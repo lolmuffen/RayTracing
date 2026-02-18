@@ -1,7 +1,7 @@
 use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
 use crate::shape::Shape;
-use crate::utils::GLOBAL;
+use crate::utils::get_GLOBAL;
 use crate::vector::Vec3;
 
 
@@ -16,7 +16,7 @@ pub struct sceneBVH {
 impl sceneBVH {
     /// Create a new sceneBVH tree from all global objects
     pub fn new() -> Self {
-        let objects = GLOBAL.get_objects().unwrap();
+        let objects = get_GLOBAL().get_objects().unwrap();
         let shape_ids: Vec<u32> = objects.iter().map(|obj| obj.get_id()).collect();
         
         sceneBVH::build_recursive(shape_ids, 0, 0)
@@ -34,7 +34,7 @@ impl sceneBVH {
             bounding_box.grow_to_fit(id);
         }
 
-        if depth >= GLOBAL.BVH_DEPTH_LIMIT || shape_ids.len() <= 2 {
+        if depth >= get_GLOBAL().BVH_DEPTH_LIMIT || shape_ids.len() <= 2 {
             // Create leaf node
             return sceneBVH {
                 bounding_box,
@@ -61,13 +61,13 @@ impl sceneBVH {
         // Sort shapes by their projection onto the principal axis
         let mut sorted_ids = shape_ids.clone();
         sorted_ids.sort_by(|&a, &b| {
-            let center_a = if let Some(shape) = GLOBAL.get_object_by_id(a) {
+            let center_a = if let Some(shape) = get_GLOBAL().get_object_by_id(a) {
                 (shape.get_min_bounds() + shape.get_max_bounds()) * 0.5
             } else {
                 Vec3::new(0.0, 0.0, 0.0)
             };
 
-            let center_b = if let Some(shape) = GLOBAL.get_object_by_id(b) {
+            let center_b = if let Some(shape) = get_GLOBAL().get_object_by_id(b) {
                 (shape.get_min_bounds() + shape.get_max_bounds()) * 0.5
             } else {
                 Vec3::new(0.0, 0.0, 0.0)
@@ -135,7 +135,7 @@ impl sceneBVH {
             let mut best_obj_id: Option<u32> = None;
 
             for &id in ids.iter() {
-                if let Some(shape) = GLOBAL.get_object_by_id(id) {
+                if let Some(shape) = get_GLOBAL().get_object_by_id(id) {
                     let inter = shape.intersect(ray);
                     if inter.hit {
                         if let Some(hits) = inter.hits {
@@ -218,7 +218,7 @@ impl BoundingBox {
     }
 
     pub fn grow_to_fit(&mut self, new_shape_id: u32) {
-        if let Some(shape) = GLOBAL.get_object_by_id(new_shape_id) {
+        if let Some(shape) = get_GLOBAL().get_object_by_id(new_shape_id) {
             let shape_min = shape.get_min_bounds();
             let shape_max = shape.get_max_bounds();
             if self.min.x > shape_min.x {
