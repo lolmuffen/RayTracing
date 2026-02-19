@@ -1,4 +1,5 @@
 
+use crate::intersection::Intersection;
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
@@ -185,7 +186,6 @@ impl Camera {
 
         Color::new(0.0, 0.0, 0.0)
     } 
-
 
     fn background_color(&self, ray: &Ray) -> Color {
         let unit_direction = ray.direction.normalize();
