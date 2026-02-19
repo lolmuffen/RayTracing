@@ -1,5 +1,4 @@
 use crate::intersection::Intersection;
-use crate::shape;
 use crate::vector::Vec3;
 use crate::ray::Ray;
 use crate::utils::random_double;
@@ -10,11 +9,15 @@ pub trait Material: Send + Sync {
     /// Returns Option containing:
     /// - attenuation (color): how much light is absorbed/reflected
     /// - scattered_ray: the resulting ray direction after interaction
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)>;
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray>;
     
     /// Optional emitted light from this material
     fn emitted(&self) -> Vec3 {
         Vec3::new(0.0, 0.0, 0.0)
+    }
+
+    fn is_emissive(&self) -> bool {
+        self.emitted() != Vec3::new(0.0, 0.0, 0.0)
     }
 }
 
@@ -31,7 +34,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, _ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray> {
 
         let hitdata = match hit_rec.hitdata.clone() {
             Some(data) => data,
@@ -42,9 +45,9 @@ impl Material for Lambertian {
         let scattered = Ray::new(
             hitdata.hit_point,
             scatter_direction.normalize(),
-            self.color * self.albedo,
+            _ray_in.color * self.color * self.albedo * (1.0 / (1.0 + hitdata.distance)),
         );
-        Some((self.color * self.albedo, scattered))
+        Some(scattered)
     }
 }
 
@@ -70,7 +73,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray> {
         let hitdata = match hit_rec.hitdata.clone() {
             Some(data) => data,
             None => return None, // No hit data, cannot scatter
@@ -84,8 +87,8 @@ impl Material for Metal {
         
         // Only scatter if the ray is going outward
         
-        let scattered = Ray::new(hitdata.hit_point, scattered_dir, self.color * self.albedo);
-        Some((self.color * self.albedo, scattered))
+        let scattered = Ray::new(hitdata.hit_point, scattered_dir, ray_in.color * self.color * self.albedo * (1.0 / (1.0 + hitdata.distance)));
+        Some(scattered)
     }
 }
 
@@ -130,7 +133,7 @@ impl Glass {
 }
 
 impl Material for Glass {
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray> {
         let hitdata = match hit_rec.hitdata.clone() {
             Some(data) => data,
             None => return None, // No hit data, cannot scatter
@@ -165,8 +168,8 @@ impl Material for Glass {
             Glass::reflect(ray_in.direction, outward_normal)
         };
         
-        let scattered = Ray::new(hitdata.hit_point, direction.normalize(), self.albedo * self.color);
-        Some((self.albedo * self.color, scattered))
+        let scattered = Ray::new(hitdata.hit_point, direction.normalize(), ray_in.color * self.albedo * self.color * (1.0 / (1.0 + hitdata.distance)));
+        Some(scattered)
     }
 }
 
@@ -183,16 +186,16 @@ impl Volume {
 }
 
 impl Material for Volume {
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray> {
         let hitdata = match hit_rec.hitdata.clone() {
             Some(data) => data,
             None => return None, // No hit data, cannot scatter
         };
         // Simple volumetric scattering - attenuate the ray and scatter in a random direction
-        let attenuation = self.color * self.density;
+        let attenuation = ray_in.color * self.color * self.density * (1.0 / (1.0 + hitdata.distance)); // Attenuation based on density and distance traveled
         let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
         let scattered = Ray::new(hitdata.hit_point, scatter_direction.normalize(), attenuation);
-        Some((attenuation, scattered))
+        Some(scattered)
     }
 }
 
@@ -205,7 +208,28 @@ impl Default {
 }
 
 impl Material for Default {
-    fn scatter(&self, _ray_in: &Ray, _hit_rec: &Intersection) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, _ray_in: &Ray, _hit_rec: &Intersection) -> Option<Ray> {
         None // No scattering, fully absorbs light
+    }
+}
+
+
+pub struct Emissive {
+    pub color: Vec3,
+    pub intensity: f32,
+}
+
+impl Emissive {
+    pub fn new(color: Vec3, intensity: f32) -> Self {
+        Emissive { color, intensity }
+    }
+}
+
+impl Material for Emissive {
+    fn scatter(&self, ray_in: &Ray, _hit_rec: &Intersection) -> Option<Ray> {
+        return Some(Ray::new(ray_in.origin, ray_in.direction, ray_in.color * self.color * self.intensity * (1.0 / (1.0 + _hit_rec.hitdata.as_ref().unwrap().distance)))); // Emissive materials do not scatter light
+    }
+    fn emitted(&self) -> Vec3 {
+        self.color * self.intensity
     }
 }

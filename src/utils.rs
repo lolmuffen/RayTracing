@@ -6,11 +6,9 @@
 //! and interval arithmetic for robust intersection testing.
 
 use rand::RngExt;
-use crate::main;
 use crate::{shape::Shape, vector::Vec3};
 use std::sync::{Arc, Mutex, OnceLock};
 use crate::BVH::sceneBVH;
-use crate::light::Light;
 
 
 // =============================================================================
@@ -95,8 +93,6 @@ impl Interval {
 pub struct Global { 
     pub global_object_id: Arc<Mutex<u32>>,
     pub global_object_list: OnceLock<Vec<Box<dyn Shape + Send + Sync>>>,
-    pub global_light_id: Arc<Mutex<u32>>,
-    pub global_light_list: OnceLock<Vec<Box<dyn Light + Send + Sync>>>,
     pub BVH_DEPTH_LIMIT: usize,
     pub scene: OnceLock<sceneBVH>,
     pub bounce_depth_limit: Arc<Mutex<u32>>,
@@ -107,8 +103,6 @@ impl Global {
         let global = Global { 
             global_object_id: Arc::new(Mutex::new(0)), 
             global_object_list: OnceLock::new(),
-            global_light_id: Arc::new(Mutex::new(0)),
-            global_light_list: OnceLock::new(),
             BVH_DEPTH_LIMIT: 20, // Default depth limit for BVH tree
             scene: OnceLock::new(), // Initialize empty BVH tree
             bounce_depth_limit: Arc::new(Mutex::new(16)), // Initialize empty bounce depth limit
@@ -126,18 +120,8 @@ impl Global {
         *guard
     }
 
-    pub fn next_light_id(&self) -> u32 {
-        let mut guard = self.global_light_id.lock().unwrap();
-        *guard += 1;
-        *guard
-    }
-
     pub fn set_objects(&self, objects: Vec<Box<dyn Shape + Send + Sync>>) -> Result<(), Vec<Box<dyn Shape + Send + Sync>>> {
         self.global_object_list.set(objects)
-    }
-
-    pub fn set_lights(&self, lights: Vec<Box<dyn Light + Send + Sync>>) -> Result<(), Vec<Box<dyn Light + Send + Sync>>> {
-        self.global_light_list.set(lights)
     }
 
     pub fn get_objects(&self) -> Option<&Vec<Box<dyn Shape + Send + Sync>>> {
@@ -146,10 +130,6 @@ impl Global {
 
     pub fn get_object_by_id(&self, id: u32) -> Option<&Box<dyn Shape + Send + Sync>> {
         self.global_object_list.get()?.iter().find(|obj| obj.get_id() == id)
-    }
-
-    pub fn get_light_by_id(&self, id: u32) -> Option<&Box<dyn Light + Send + Sync>> {
-        self.global_light_list.get()?.iter().find(|light| light.get_id() == id)
     }
 
     pub fn get_depth_limit(&self) -> u32 {
@@ -161,9 +141,6 @@ impl Global {
         self.scene.get().expect("Scene not initialized")
     }
 
-    pub fn get_lights(&self) -> Option<&Vec<Box<dyn Light + Send + Sync>>> {
-        self.global_light_list.get()
-    }
 }
 
 // Global instance accessor

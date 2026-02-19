@@ -188,3 +188,14 @@ impl Mul<Vec3> for f32 {
     type Output = Vec3;
     fn mul(self, o: Vec3) -> Vec3 { o.mul(self) }
 }
+
+impl Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+    fn mul(self, o: Vec3) -> Vec3 { self.component_mul(o) }
+}
+
+impl PartialEq for Vec3 {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}

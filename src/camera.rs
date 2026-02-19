@@ -1,5 +1,4 @@
-use crate::intersection::Intersection;
-use crate::light;
+
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
@@ -165,49 +164,34 @@ impl Camera {
     }
 
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
-        let mut ray_color = Color::new(1.0, 1.0, 1.0);
 
         for _bounce in 0..get_GLOBAL().get_depth_limit() {
             if let Some(hit_record) = get_GLOBAL().get_scene().traverse(&current_ray) {
                 
-                if let Some((attenuation, scattered_ray)) = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record) {
+                if let Some(scattered_ray) = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record) {
                     current_ray = scattered_ray;
-                    ray_color = ray_color.component_mul(attenuation) * self.direct_illumination(hit_record);
+                    if get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().is_emissive() {
+
+                        return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
+                    }
+
                 } else {
                     return Color::new(0.0, 0.0, 0.0);
                 }
             } else {
-                return ray_color + self.background_color(&current_ray);
+                return current_ray.color * self.background_color(&current_ray);
             }
         }
 
         Color::new(0.0, 0.0, 0.0)
-    }
+    } 
 
-    pub fn direct_illumination(&self, hit_record: Intersection) -> f32 {
-        // Compute direct illumination by sampling each light and testing visibility (shadow ray)
-        let mut total_light = 0.0;
-        let hit_data = hit_record.hitdata.clone().unwrap();
-        let lights = get_GLOBAL().get_lights().unwrap();
-        for light in lights.iter() {
-            for _ in 0..self.light_samples {
-                let shadow_ray = light.sample_light(hit_data.hit_point);
-                let shadow_hit = get_GLOBAL().get_scene().traverse(&shadow_ray);
-                match shadow_hit {
-                    Some(hit) => {}, // In shadow, no contribution
-                    None => {total_light += 1.0 / self.light_samples as f32}, // Not in shadow, add light contribution
-                }
-            }
-        }
-        total_light / lights.len() as f32
-    }    
 
     fn background_color(&self, ray: &Ray) -> Color {
-        // let unit_direction = ray.direction.normalize();
-        // let t = 0.5 * (unit_direction.y + 1.0);
+        let unit_direction = ray.direction.normalize();
+        let t = 0.5 * (unit_direction.y + 1.0);
 
-        // Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
-        return Color::zero(); // Pure black background for better contrast
+        Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
     }
 
     pub fn get_sample_ray(&self, i: u32, j: u32) -> Ray {

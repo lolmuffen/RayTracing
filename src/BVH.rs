@@ -1,6 +1,5 @@
 use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
-use crate::shape::Shape;
 use crate::utils::get_GLOBAL;
 use crate::vector::Vec3;
 
