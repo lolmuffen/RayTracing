@@ -1,4 +1,5 @@
 use crate::material::Default;
+use crate::shape::Shape;
 use crate::vector::Vec3;
 use crate::sphere::Sphere;
 use crate::ray::Ray;
@@ -57,4 +58,5 @@ pub trait Light {
     fn get_position(&self) -> Vec3;
     fn get_intensity(&self) -> f32;
     fn get_color(&self) -> Vec3;
+
 }

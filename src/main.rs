@@ -16,13 +16,12 @@ use crate::light::SphereLight;
 use crate::sphere::Sphere;
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
-use crate::utils::{GLOBAL, Global, get_GLOBAL};
+use crate::utils::{Global, get_GLOBAL};
 use crate::material::{Lambertian, Metal};
 
 fn main() {
     //Init global state for unique ID generation
-    let init = Global::init();
-
+    Global::init();
 
     //Note: Init globals before anything else
     let material_ground = Box::new(Lambertian::new(1.0,Color::new(0.8, 0.8, 0.0)));
@@ -62,7 +61,7 @@ fn main() {
     let objects: Vec<Box<dyn crate::shape::Shape + Send + Sync>> = vec![Box::new(sphere1), Box::new(sphere2), Box::new(sphere3), Box::new(sphere4)];
 
     let mut lights: Vec<Box<dyn crate::light::Light + Send + Sync>> = Vec::new();
-    lights.push(Box::new(SphereLight::new(Vec3::new(1.0, 4.0, -1.0), 1.0, Color::new(1.0, 1.0, 1.0), 1.0)));
+    lights.push(Box::new(SphereLight::new(Vec3::new(0.0, 1.0, 0.0), 1.0, Color::new(1.0, 1.0, 1.0), 1.0)));
     
 
     // Set global state with our scene objects and lights for access during rendering
