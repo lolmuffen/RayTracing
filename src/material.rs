@@ -82,7 +82,7 @@ impl Material for Metal {
         let reflected = Metal::reflect(ray_in.direction.normalize(), hitdata.normal);
         
         // Add roughness by perturbing the reflected direction
-        let roughness_offset = Vec3::random_vec_on_hemisphere(hitdata.normal) * self.roughness;
+        let roughness_offset = ray_in.direction.random_vec_cosine_weighted(&hitdata.normal) * self.roughness;
         let scattered_dir = (reflected + roughness_offset).normalize();
         
         // Only scatter if the ray is going outward
