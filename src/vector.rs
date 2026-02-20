@@ -104,6 +104,26 @@ impl Vec3 {
         }
     }
 
+    ///Generates a random vector on the unit sphere wheighted by the cosine of the angle to the normal.
+    pub fn random_vec_cosine_weighted(&self, normal: &Vec3) -> Vec3 {
+        let r1: f32 = random_double();
+        let r2: f32 = random_double();
+        let z = (1.0 - r2).sqrt();
+
+        let phi = 2.0 * std::f32::consts::PI * r1;
+        let x = phi.cos() * r2.sqrt();
+        let y = phi.sin() * r2.sqrt();
+
+        // Create an orthonormal basis (u, v, w) with w = normal
+        let w = normal.normalize();
+        let a = if w.x.abs() > 0.9 { Vec3::new(0.0, 1.0, 0.0) } else { Vec3::new(1.0, 0.0, 0.0) };
+        let v = w.cross(a).normalize();
+        let u = w.cross(v);
+
+        // Convert from local space to world space
+        u * x + v * y + w * z
+    }
+
     /// Generates a random vector with components in [0, 1].
     pub fn random_vector() -> Vec3 {
         Vec3::new(random_double(), random_double(), random_double())
@@ -135,12 +155,6 @@ impl Vec3 {
         v.x.abs() < EPSILON && v.y.abs() < EPSILON && v.z.abs() < EPSILON
     }
 
-    pub fn refract(&mut self, normal: Vec3, refraction_ratio: f32) -> Vec3 {
-        let cos_theta = self.dot(normal).min(1.0);
-        let r_out_perpendicular = refraction_ratio * (*self + cos_theta * normal);
-        let r_out_parralel = -(1.0 - (r_out_perpendicular.length_squared().abs().sqrt())) * normal;
-        r_out_perpendicular + r_out_parralel
-    }
 }
 
 // Operator overloads for more natural mathematical syntax

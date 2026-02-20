@@ -40,7 +40,7 @@ impl Material for Lambertian {
             Some(data) => data,
             None => return None, // No hit data, cannot scatter
         };
-        let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
+        let scatter_direction = hitdata.normal + _ray_in.direction.random_vec_cosine_weighted(&hitdata.normal);
         
         let scattered = Ray::new(
             hitdata.hit_point,
