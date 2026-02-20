@@ -76,8 +76,9 @@ fn main() {
     // =============================================================================
     // Rendering Execution
     // =============================================================================
-    // Render the scene and output the result as a PPM image to stdout
     
     cam.render();
+
+    
 }
 
