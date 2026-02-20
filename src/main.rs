@@ -12,7 +12,7 @@ use crate::sphere::Sphere;
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
 use crate::utils::{Global, get_GLOBAL};
-use crate::material::{Lambertian, Metal, Emissive};
+use crate::material::{Emissive, Glass, Lambertian, Metal};
 
 fn main() {
     //Init global state for unique ID generation
@@ -27,7 +27,7 @@ fn main() {
     let material_left = Box::new(Metal::new(1.0, Color::new(0.8, 0.8, 0.8), 0.0));
 
     /// Right sphere: metallic with high roughness for brushed metal appearance
-    let material_right = Box::new(Metal::new(1.0, Color::new(0.8, 0.6, 0.0), 0.5));
+    let material_right = Box::new(Glass::new(1.5, 2.0, Color::new(0.8, 0.6, 0.4)));
 
     // =============================================================================
     // Scene Geometry Setup
@@ -48,7 +48,7 @@ fn main() {
     /// Right sphere: Shows rougher metallic surface
     let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.6, 0.0), material_right);
 
-    let light = Sphere::new(Vec3 { x: 0.0, y: 5.0, z: -1.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Box::new(Emissive::new(Color::new(4.0, 4.0, 4.0), 1.0)));
+    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -5.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Box::new(Emissive::new(Color::new(4.0, 4.0, 4.0), 1.0)));
 
     // =============================================================================
     // Scene Assembly
@@ -64,12 +64,13 @@ fn main() {
     /// Image dimensions and quality settings
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
+    let fov = 170;                             // Wide field of view for dramatic perspective
     let samples_per_pixel: u32 = 10;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
     let light_samples: u32 = 5;              // Number of samples for direct illumination (higher = softer shadows)
 
     // Create the virtual camera with specified parameters
-    let cam = Camera::new(Vec3::zero(), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), 80, samples_per_pixel, max_depth as u32, light_samples);
+    let cam = Camera::new(Vec3::new(-2.0, 10.0, -10.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, light_samples);
 
     // =============================================================================
     // Rendering Execution

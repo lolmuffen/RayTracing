@@ -1,5 +1,3 @@
-
-use crate::intersection::Intersection;
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
@@ -57,24 +55,21 @@ pub struct Camera {
     pub delta_u: Vec3,
     pub delta_v: Vec3,
     pub light_samples: u32,
+    pub focal_length: f32,
 }
 
 impl Camera {
     pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, light_samples: u32) -> Self {
         let center = position;
         let (width, height) = resolution;
-        
-        // Ensure direction is normalized
-        let forward = direction.normalize();
-        
-        // Standard up vector
+
+        let focal_length = (position - direction).length();
+    
         let world_up = Vec3::new(0.0, 1.0, 0.0);
-        
-        // Calculate the right direction (perpendicular to forward and up)
-        let right = forward.cross(world_up).normalize();
-        
-        // Recalculate up to ensure orthogonality
-        let up = right.cross(forward).normalize();
+
+        let forward = (position - direction).normalize();
+        let right = world_up.cross(forward).normalize();
+        let up = forward.cross(right).normalize();
         
         // Calculate FOV in radians
         let fov_rad = (fov as f32).to_radians();
@@ -90,8 +85,10 @@ impl Camera {
         let delta_v = viewport_v / height as f32;
         
         // Calculate the upper left corner of the pixel grid
-        let viewport_upper_left = center + forward - (viewport_u / 2.0) - (viewport_v / 2.0);
+        let viewport_upper_left = center - (forward * focal_length) - (viewport_u / 2.0) - (viewport_v / 2.0);
         let origin_pixel_upper_left = viewport_upper_left + (delta_u * 0.5) + (delta_v * 0.5);
+
+        
         
         Camera {
             position,
@@ -105,6 +102,7 @@ impl Camera {
             delta_u,
             delta_v,
             light_samples,
+            focal_length
         }
     }
 
@@ -201,7 +199,7 @@ impl Camera {
             + (self.delta_u * (i as f32 + offset.x))
             + (self.delta_v * (j as f32 + offset.y));
 
-        let ray_direction = pixel_sample - self.center;
+        let ray_direction = pixel_sample - self.center ;
         let ray_color = Color::new(1.0, 1.0, 1.0); // Default white color for rays
 
         Ray::new(self.center, ray_direction, ray_color)
