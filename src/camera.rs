@@ -167,17 +167,16 @@ impl Camera {
         for _bounce in 0..get_GLOBAL().get_depth_limit() {
             if let Some(hit_record) = get_GLOBAL().get_scene().traverse(&current_ray) {
                 
-                if let Some(scattered_ray) = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record) {
-                    current_ray = scattered_ray;
-                    if get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().is_emissive() {
+                let scattered_ray = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record);
+                current_ray = scattered_ray;
+                if get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().is_emissive() {
 
-                        return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
-                    }
+                    return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
 
-                } else {
-                    return Color::new(0.0, 0.0, 0.0);
                 }
-            } else {
+            }
+            else 
+            {
                 return current_ray.color * self.background_color(&current_ray);
             }
         }

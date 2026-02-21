@@ -7,7 +7,7 @@ use crate::utils::random_double;
 pub trait Material: Send + Sync {
     /// Scatter a ray off this material
     /// Returns Option containing a scattered `Ray` (attenuation encoded in `Ray.color`)
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray>;
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Ray;
 
     /// Optional emitted light from this material
     fn emitted(&self) -> Vec3 {
@@ -90,19 +90,19 @@ impl Generic {
     }
 
     // Unified scatter function for all reflective materials
-    fn scatter_reflective(&self, ray_in: &Ray, hitdata: &Hit) -> Option<Ray> {
+    fn scatter_reflective(&self, ray_in: &Ray, hitdata: &Hit) -> Ray {
         let attenuation_factor = 1.0 / (1.0 + hitdata.distance);
 
         match self.kind {
             MaterialKind::Lambertian { albedo, color } => {
                 let scatter_direction = hitdata.normal + ray_in.direction.random_vec_cosine_weighted(&hitdata.normal);
-                Some(Ray::new(hitdata.hit_point, scatter_direction.normalize(), ray_in.color * color * albedo * attenuation_factor))
+                Ray::new(hitdata.hit_point, scatter_direction.normalize(), ray_in.color * color * albedo * attenuation_factor)
             }
             MaterialKind::Metal { albedo, color, roughness } => {
                 let reflected = Generic::reflect(ray_in.direction.normalize(), hitdata.normal);
                 let roughness_offset = ray_in.direction.random_vec_cosine_weighted(&hitdata.normal) * roughness;
                 let scattered_dir = (reflected + roughness_offset).normalize();
-                Some(Ray::new(hitdata.hit_point, scattered_dir, ray_in.color * color * albedo * attenuation_factor))
+                Ray::new(hitdata.hit_point, scattered_dir, ray_in.color * color * albedo * attenuation_factor)
             }
             MaterialKind::Glass { refraction_index, albedo, color } => {
                 let outward_normal = if ray_in.direction.dot(hitdata.normal) > 0.0 { -hitdata.normal } else { hitdata.normal };
@@ -116,7 +116,7 @@ impl Generic {
                 } else {
                     refracted.unwrap_or_else(|| Generic::reflect(ray_in.direction, outward_normal))
                 };
-                Some(Ray::new(hitdata.hit_point, direction.normalize(), ray_in.color * albedo * color * attenuation_factor))
+                Ray::new(hitdata.hit_point, direction.normalize(), ray_in.color * albedo * color * attenuation_factor)
             }
             MaterialKind::Specular { specular_probability, color, albedo, roughness } => {
                 let specular_reflection = specular_probability >= random_double();
@@ -129,36 +129,33 @@ impl Generic {
                     let dir = (reflected + roughness_offset).normalize();
                     (dir, ray_in.color * albedo * attenuation_factor)
                 };
-                Some(Ray::new(hitdata.hit_point, scatter_direction.normalize(), out_color))
+                Ray::new(hitdata.hit_point, scatter_direction.normalize(), out_color)
             }
-            _ => None,
+            _ => {panic!("Either a new Material has been added or something is seriously wrong")},
         }
     }
 }
 
 impl Material for Generic {
-    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Option<Ray> {
+    fn scatter(&self, ray_in: &Ray, hit_rec: &Intersection) -> Ray {
         let hitdata = match hit_rec.hitdata.clone() {
             Some(data) => data,
-            None => return None,
+            None => {panic!("AAAAAAAAAAAAAAa")},
         };
 
         match self.kind {
-            MaterialKind::Volume { .. } | MaterialKind::Emissive { .. } => {
-                // Volume and Emissive materials handled separately
-                match self.kind {
-                    MaterialKind::Volume { density, color } => {
-                        let attenuation = ray_in.color * color * density * (1.0 / (1.0 + hitdata.distance));
-                        let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
-                        Some(Ray::new(hitdata.hit_point, scatter_direction.normalize(), attenuation))
-                    }
-                    MaterialKind::Emissive { color, intensity } => {
-                        Some(Ray::new(ray_in.origin, ray_in.direction, ray_in.color * color * intensity * (1.0 / (1.0 + hitdata.distance))))
-                    }
-                    _ => None,
-                }
+            
+            MaterialKind::Volume { density, color } => {
+                let attenuation = ray_in.color * color * density * (1.0 / (1.0 + hitdata.distance));
+                let scatter_direction = hitdata.normal + Vec3::random_unit_vector();
+                Ray::new(hitdata.hit_point, scatter_direction.normalize(), attenuation)
+            }
+            MaterialKind::Emissive { color, intensity } => {
+                Ray::new(ray_in.origin, ray_in.direction, ray_in.color * color * intensity * (1.0 / (1.0 + hitdata.distance)))
             }
             _ => self.scatter_reflective(ray_in, &hitdata),
+        
+        
         }
     }
 
