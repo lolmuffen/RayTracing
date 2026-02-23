@@ -150,6 +150,17 @@ impl Vec3 {
         }
     }
 
+    pub fn random_vec_on_circle() -> Vec3{
+        loop {
+            let vec = Vec3::new(random_double(), random_double(), 0.0);
+            // you can use length sqared instead of length because it saves a sqrt 
+            //while keeping the property whether the vec's length is greater or less than one
+            if vec.length_squared() <= 1.0 {
+                return vec;
+            }
+        }
+    }
+
     pub fn near_zero(v: Vec3) -> bool {
         const EPSILON: f32 = 1e-8;
         v.x.abs() < EPSILON && v.y.abs() < EPSILON && v.z.abs() < EPSILON
