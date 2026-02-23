@@ -70,15 +70,17 @@ fn main() {
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
     let light_samples: u32 = 5;              // Number of samples for direct illumination (higher = softer shadows)
 
+    // Depth of field (distance focusing) parameters
+    let focus_distance: f32 = 2.0;  // Distance from camera where objects appear sharp
+    let aperture: f32 = 0.5;          // Camera aperture diameter (0.0 = pinhole, larger = more blur)
+
     // Create the virtual camera with specified parameters
-    let cam = Camera::new(Vec3::new(-2.0, 10.0, -10.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, light_samples);
+    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, light_samples, focus_distance, aperture);
 
     // =============================================================================
     // Rendering Execution
     // =============================================================================
     
     cam.render();
-
-    
 }
 

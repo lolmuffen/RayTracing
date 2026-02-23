@@ -56,10 +56,15 @@ pub struct Camera {
     pub delta_v: Vec3,
     pub light_samples: u32,
     pub focal_length: f32,
+    pub focus_distance: f32,
+    pub aperture_radius: f32,
+    pub forward: Vec3,
+    pub right: Vec3,
+    pub up: Vec3,
 }
 
 impl Camera {
-    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, light_samples: u32) -> Self {
+    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, light_samples: u32, focus_distance: f32, aperture: f32) -> Self {
         let center = position;
         let (width, height) = resolution;
 
@@ -88,7 +93,8 @@ impl Camera {
         let viewport_upper_left = center - (forward * focal_length) - (viewport_u / 2.0) - (viewport_v / 2.0);
         let origin_pixel_upper_left = viewport_upper_left + (delta_u * 0.5) + (delta_v * 0.5);
 
-        
+        // Aperture radius is half the aperture diameter
+        let aperture_radius = aperture / 2.0;
         
         Camera {
             position,
@@ -102,7 +108,12 @@ impl Camera {
             delta_u,
             delta_v,
             light_samples,
-            focal_length
+            focal_length,
+            focus_distance,
+            aperture_radius,
+            forward,
+            right,
+            up,
         }
     }
 
@@ -198,10 +209,22 @@ impl Camera {
             + (self.delta_u * (i as f32 + offset.x))
             + (self.delta_v * (j as f32 + offset.y));
 
-        let ray_direction = pixel_sample - self.center ;
+        // Depth of field: generate a random point on the aperture disk
+        let aperture_sample = Vec3::random_vec_on_circle();
+        let aperture_offset = (self.right * aperture_sample.x + self.up * aperture_sample.y) * self.aperture_radius;
+
+        // The ray origin is offset from the camera center based on the aperture sample
+        let ray_origin = self.center + aperture_offset;
+
+        // Calculate the focal plane point: Cast a ray from center through pixel_sample at focus_distance
+        let ray_direction_to_focal = (pixel_sample - self.center).normalize();
+        let focal_plane_point = self.center + ray_direction_to_focal * self.focus_distance;
+
+        // The actual ray direction goes from the offset origin to the focal plane point
+        let final_direction = focal_plane_point - ray_origin;
         let ray_color = Color::new(1.0, 1.0, 1.0); // Default white color for rays
 
-        Ray::new(self.center, ray_direction, ray_color)
+        Ray::new(ray_origin, final_direction, ray_color)
     }
 
 }
