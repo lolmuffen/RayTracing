@@ -10,11 +10,11 @@ pub struct Sphere {
     pub position: Vec3,
     pub radius: f32,
     pub color: Vec3,
-    pub material: Box<dyn Material + Send + Sync>,
+    pub material: Material,
 }
 
 impl Sphere {
-    pub fn new(position: Vec3, radius: f32, color: Vec3, material: Box<dyn Material + Send + Sync>) -> Sphere {
+    pub fn new(position: Vec3, radius: f32, color: Vec3, material: Material) -> Sphere {
         let sphere = Sphere {
             ID: get_GLOBAL().next_object_id(), 
             position, 
@@ -78,7 +78,7 @@ impl Shape for Sphere {
         }
     }
 
-    fn get_material(&self) -> &Box<dyn Material + Send + Sync> {
+    fn get_material(&self) -> &Material {
         &self.material
     }
 }

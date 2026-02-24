@@ -10,5 +10,5 @@ pub trait Shape {
     fn get_max_bounds(&self) -> Vec3;
     fn get_min_bounds(&self) -> Vec3;
     fn get_id(&self) -> u32;
-    fn get_material(&self) -> &Box<dyn Material + Send + Sync>;
+    fn get_material(&self) -> &Material;
 }

@@ -12,23 +12,23 @@ use crate::sphere::Sphere;
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
 use crate::utils::{Global, get_GLOBAL};
-use crate::material::Generic;
+use crate::material::Material;
 
 
 fn main() {
     //Init global state for unique ID generation
     Global::init();
     // yellow diffuse material for the ground plane
-    let material_ground = Box::new(Generic::lambertian(1.0,Color::new(0.8, 0.8, 0.0)));
+    let material_ground = Material::lambertian(1.0,Color::new(0.8, 0.8, 0.0));
 
     /// Center sphere: blue diffuse material for classic matte appearance
-    let material_center = Box::new(Generic::specular(Color::new(0.1, 0.2, 0.5), 1.0, 0.0, 1.0));
+    let material_center = Material::specular(Color::new(0.1, 0.2, 0.5), 1.0, 0.0, 1.0);
 
     /// Left sphere: metallic with low roughness for mirror-like reflections
-    let material_left = Box::new(Generic::metal(1.0, Color::new(0.8, 0.8, 0.8), 0.0));
+    let material_left = Material::metal(1.0, Color::new(0.8, 0.8, 0.8), 0.0);
 
     /// Right sphere: metallic with high roughness for brushed metal appearance
-    let material_right = Box::new(Generic::glass(1.5, 2.0, Color::new(0.8, 0.6, 0.4)));
+    let material_right = Material::glass(1.5, 2.0, Color::new(0.8, 0.6, 0.4));
 
     // =============================================================================
     // Scene Geometry Setup
@@ -49,7 +49,7 @@ fn main() {
     /// Right sphere: Shows rougher metallic surface
     let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.6, 0.0), material_right);
 
-    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Box::new(Generic::emissive(Color::new(4.0, 4.0, 4.0), 1.0)));
+    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Material::emissive(Color::new(4.0, 4.0, 4.0), 1.0));
 
     // =============================================================================
     // Scene Assembly
