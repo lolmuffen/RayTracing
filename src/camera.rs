@@ -205,9 +205,8 @@ impl Camera {
         let sky_color = Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
         
         // Add sun glow to background
-        let sun_dot = unit_direction.dot(self.sun_direction).max(0.0);
+        let sun_dot = unit_direction.dot(self.sun_direction).powf(10.0).max(0.0);
         let sun_disk = 1.0 / ( 1.0 / (Color::new(1.0, 0.95, 0.7) * sun_dot.powf(20.0))) * 2.0;
-        let sun_halo = Color::new(1.0, 0.8, 0.4) * sun_dot.powf(3.0) * 0.4;
         
         (sky_color + sun_disk ) / 2.0
     }
