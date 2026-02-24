@@ -54,7 +54,6 @@ pub struct Camera {
     pub origin_pixel_upper_left: Vec3,
     pub delta_u: Vec3,
     pub delta_v: Vec3,
-    pub light_samples: u32,
     pub focal_length: f32,
     pub focus_distance: f32,
     pub aperture_radius: f32,
@@ -64,7 +63,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, light_samples: u32, focus_distance: f32, aperture: f32) -> Self {
+    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, focus_distance: f32, aperture: f32) -> Self {
         let center = position;
         let (width, height) = resolution;
 
@@ -107,7 +106,6 @@ impl Camera {
             origin_pixel_upper_left,
             delta_u,
             delta_v,
-            light_samples,
             focal_length,
             focus_distance,
             aperture_radius,
@@ -185,6 +183,9 @@ impl Camera {
                     return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
 
                 }
+                else {
+                    continue;
+                }
             }
             else 
             {
@@ -192,7 +193,8 @@ impl Camera {
             }
         }
 
-        Color::new(0.0, 0.0, 0.0)
+        return current_ray.color;
+
     } 
 
     fn background_color(&self, ray: &Ray) -> Color {
