@@ -60,10 +60,11 @@ pub struct Camera {
     pub forward: Vec3,
     pub right: Vec3,
     pub up: Vec3,
+    pub sun_direction: Vec3,
 }
 
 impl Camera {
-    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, focus_distance: f32, aperture: f32) -> Self {
+    pub fn new(position: Vec3, direction: Vec3, resolution: (u32, u32), fov: u32, samples: u32, num_bounces: u32, focus_distance: f32, aperture: f32, sun_direction: Vec3) -> Self {
         let center = position;
         let (width, height) = resolution;
 
@@ -112,6 +113,7 @@ impl Camera {
             forward,
             right,
             up,
+            sun_direction: sun_direction.normalize(),
         }
     }
 
@@ -200,8 +202,14 @@ impl Camera {
     fn background_color(&self, ray: &Ray) -> Color {
         let unit_direction = ray.direction.normalize();
         let t = 0.5 * (unit_direction.y + 1.0);
-
-        Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
+        let sky_color = Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
+        
+        // Add sun glow to background
+        let sun_dot = unit_direction.dot(self.sun_direction).max(0.0);
+        let sun_disk = 1.0 / ( 1.0 / (Color::new(1.0, 0.95, 0.7) * sun_dot.powf(20.0))) * 2.0;
+        let sun_halo = Color::new(1.0, 0.8, 0.4) * sun_dot.powf(3.0) * 0.4;
+        
+        (sky_color + sun_disk ) / 2.0
     }
 
     pub fn get_sample_ray(&self, i: u32, j: u32) -> Ray {

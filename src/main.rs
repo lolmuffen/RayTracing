@@ -49,7 +49,7 @@ fn main() {
     /// Right sphere: Shows rougher metallic surface
     let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.6, 0.0), material_right);
 
-    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -5.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Box::new(Generic::emissive(Color::new(4.0, 4.0, 4.0), 1.0)));
+    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Box::new(Generic::emissive(Color::new(4.0, 4.0, 4.0), 1.0)));
 
     // =============================================================================
     // Scene Assembly
@@ -71,10 +71,13 @@ fn main() {
 
     // Depth of field (distance focusing) parameters
     let focus_distance: f32 = 2.0;  // Distance from camera where objects appear sharp
-    let aperture: f32 = 0.5;          // Camera aperture diameter (0.0 = pinhole, larger = more blur)
+    let aperture: f32 = 0.01;          // Camera aperture diameter (0.0 = pinhole, larger = more blur)
 
-    // Create the virtual camera with specified parameters
-    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture);
+    // Create the virtual camera with specified parameters and sun direction
+    let sun_direction = Vec3::new(1.0, 2.0, -1.0);
+
+
+    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 1.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution

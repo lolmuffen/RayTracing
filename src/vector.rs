@@ -191,6 +191,11 @@ impl Div<f32> for Vec3 {
     fn div(self, s: f32) -> Vec3 { self.div(s) }
 }
 
+impl Div<Vec3> for f32 {
+    type Output = Vec3;
+    fn div(self, o: Vec3) -> Vec3 {o * (1.0 / self)}
+}
+
 impl Neg for Vec3 {
     type Output = Vec3;
     fn neg(self) -> Vec3 { Vec3::new(-self.x, -self.y, -self.z) }
