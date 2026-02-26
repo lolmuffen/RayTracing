@@ -175,14 +175,18 @@ impl Camera {
 
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
 
-        for _bounce in 0..get_GLOBAL().get_depth_limit() {
-            if let Some(hit_record) = get_GLOBAL().get_scene().traverse(&current_ray) {
-                
-                let scattered_ray = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record);
-                current_ray = scattered_ray;
-                if get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().is_emissive() {
+        let global = get_GLOBAL();
+        let scene  = global.get_scene();
+        let depth  = global.get_depth_limit();
 
-                    return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
+        for _bounce in 0..depth {
+            if let Some(hit_record) = scene.traverse(&current_ray) {
+                let material = global.get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material();
+                let scattered_ray = material.scatter(&current_ray, &hit_record);
+                current_ray = scattered_ray;
+                if material.is_emissive() {
+
+                    return current_ray.color * material.emitted();
 
                 }
                 else {
