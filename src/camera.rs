@@ -145,6 +145,7 @@ impl Camera {
 
             // Process pixels in parallel using 2D coordinates
             // Inside the loop, write directly by index
+
             pixel_buffer
                 .par_chunks_mut(width)
                 .enumerate()
