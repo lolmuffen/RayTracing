@@ -140,6 +140,11 @@ impl Global {
     }
 
     #[inline(always)]
+    pub fn get_BVH_depth_limit(&self) -> usize {
+        self.BVH_DEPTH_LIMIT
+    }
+
+    #[inline(always)]
     pub fn get_scene(&self) -> &sceneBVH {
         self.scene.get().expect("Scene not initialized")
     }

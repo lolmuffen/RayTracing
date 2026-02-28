@@ -135,7 +135,7 @@ impl Camera {
         let mut pixel_buffer: Vec<u32> = vec![0u32; width * height];
         let samples = self.samples_per_pixel;
         let mut frame_count: u32 = 0;
-        let frame_count_before_print = 100;
+        let frame_count_before_print = 10;
         let mut frame_time_average = Duration::new(0, 0);
 
         while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -171,7 +171,6 @@ impl Camera {
             if is_time_frame {
                 println!("Average frame time over {} frames: {}ms", frame_count_before_print, frame_time_average.as_millis() / frame_count_before_print as u128);
                 frame_time_average = Duration::new(0, 0);
-            
             }
 
         }
@@ -184,10 +183,12 @@ impl Camera {
         let depth  = global.get_depth_limit();
 
         for _bounce in 0..depth {
-            if let Some(hit_record) = scene.traverse(&current_ray) {
+            if let Some(hit_record) = scene.traverse(&current_ray, global) {
+
                 let material = global.get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material();
                 let scattered_ray = material.scatter(&current_ray, &hit_record);
                 current_ray = scattered_ray;
+
                 if material.is_emissive() {
 
                     return current_ray.color * material.emitted();

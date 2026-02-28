@@ -1,6 +1,8 @@
+use rand::rand_core::utils;
+
 use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
-use crate::utils::get_GLOBAL;
+use crate::utils::{Global, get_GLOBAL};
 use crate::vector::Vec3;
 
 
@@ -33,7 +35,7 @@ impl sceneBVH {
             bounding_box.grow_to_fit(id);
         }
 
-        if depth >= get_GLOBAL().BVH_DEPTH_LIMIT || shape_ids.len() <= 2 {
+        if depth >= get_GLOBAL().get_BVH_depth_limit() as usize || shape_ids.len() <= 2 {
             // Create leaf node
             return sceneBVH {
                 bounding_box,
@@ -96,7 +98,7 @@ impl sceneBVH {
 
     }
 
-    pub fn traverse(&self, ray: &Ray) -> Option<Intersection> {
+    pub fn traverse(&self, ray: &Ray, global: &Global) -> Option<Intersection> {
         // AABB - ray intersection (slab method)
         let mut tmin = (self.bounding_box.min.x - ray.origin.x) * ray.inv_dir.x;
         let mut tmax = (self.bounding_box.max.x - ray.origin.x) * ray.inv_dir.x;
@@ -134,7 +136,7 @@ impl sceneBVH {
             let mut best_obj_id: Option<u32> = None;
 
             for &id in ids.iter() {
-                if let Some(shape) = get_GLOBAL().get_object_by_id(id) {
+                if let Some(shape) = global.get_object_by_id(id) {
                     let inter = shape.intersect(ray);
                     if inter.hit {
                         if let Some(hits) = inter.hitdata {
@@ -167,11 +169,11 @@ impl sceneBVH {
         let mut right_hit: Option<Intersection> = None;
 
         if let Some(left) = &self.left_child {
-            left_hit = left.traverse(ray);
+            left_hit = left.traverse(ray, &global);
         }
 
         if let Some(right) = &self.right_child {
-            right_hit = right.traverse(ray);
+            right_hit = right.traverse(ray, &global);
         }
 
         match (left_hit, right_hit) {
