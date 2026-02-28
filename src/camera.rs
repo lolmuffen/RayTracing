@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
@@ -122,7 +124,6 @@ impl Camera {
     pub fn render(&self) {
         let (width, height) = (self.resolution.0 as usize, self.resolution.1 as usize);
         let buffer: Vec<u32> = vec![0; width * height]; // Simple buffer for pixel data
-        let buffer = std::sync::Arc::new(std::sync::Mutex::new(buffer));
 
         let mut window = Window::new(
             "RayTracing - Basic Window",
@@ -131,58 +132,65 @@ impl Camera {
             WindowOptions::default(),
         ).expect("Unable to open window");
 
+        let mut pixel_buffer: Vec<u32> = vec![0u32; width * height];
+        let samples = self.samples_per_pixel;
+        let mut frame_count: u32 = 0;
+        let frame_count_before_print = 100;
+        let mut frame_time_average = Duration::new(0, 0);
+
         while window.is_open() && !window.is_key_down(Key::Escape) {
+
+            frame_count += 1;
+            let frame_start = Instant::now();
+
             // Process pixels in parallel using 2D coordinates
-            let samples = self.samples_per_pixel;
-            let pixel_data: Vec<(usize, usize, u32)> = (0..height)
-                .into_par_iter()
-                .flat_map(|y| {
-                    (0..width)
-                        .into_iter()
-                        .map(|x| {
-                            // Accumulate multiple jittered samples per pixel
-                            let mut accumulated = Color::zero();
-                            for _s in 0..samples {
-                                let ray = self.get_sample_ray(x as u32, y as u32);
-                                accumulated += self.path_pixel_color(ray);
-                            }
+            // Inside the loop, write directly by index
+            pixel_buffer
+                .par_chunks_mut(width)
+                .enumerate()
+                .for_each(|(y, row)| {
+                    for x in 0..width {
+                        let mut accumulated = Color::zero();
+                        for _ in 0..samples {
+                            let ray = self.get_sample_ray(x as u32, y as u32);
+                            accumulated += self.path_pixel_color(ray);
+                        }
+                        let avg = accumulated / samples as f32;
+                        row[x] = Color::color_to_hex(Color::gamma_correct_color(&avg));
+                    }
+                });
 
-                            // Average the samples
-                            let avg_color = accumulated / samples as f32;
+            window.update_with_buffer(&pixel_buffer, width, height).ok();
+            
+            let frame_time = frame_start.elapsed();
+            frame_time_average += frame_time;
+            
+            let is_time_frame: bool = frame_count % frame_count_before_print == 0;
+            
 
-                            // Gamma-correct and convert to hex
-                            let hex_color = Color::color_to_hex(Color::gamma_correct_color(&avg_color));
-                            (x, y, hex_color)
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect();
-
-            // Write pixel data to buffer (thread-safe approach)
-            if let Ok(mut buf) = buffer.lock() {
-                for (x, y, color) in pixel_data {
-                    let index = y * width + x;
-                    buf[index] = color;
-                }
+            if is_time_frame {
+                println!("Average frame time over {} frames: {}ms", frame_count_before_print, frame_time_average.as_millis() / frame_count_before_print as u128);
+                frame_time_average = Duration::new(0, 0);
+            
             }
 
-            // Update the window with the buffer
-            if let Ok(buf) = buffer.lock() {
-                window.update_with_buffer(&buf, width, height).ok();
-            }
         }
     }
 
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
 
-        for _bounce in 0..get_GLOBAL().get_depth_limit() {
-            if let Some(hit_record) = get_GLOBAL().get_scene().traverse(&current_ray) {
-                
-                let scattered_ray = get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().scatter(&current_ray, &hit_record);
-                current_ray = scattered_ray;
-                if get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().is_emissive() {
+        let global = get_GLOBAL();
+        let scene  = global.get_scene();
+        let depth  = global.get_depth_limit();
 
-                    return current_ray.color * get_GLOBAL().get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material().emitted();
+        for _bounce in 0..depth {
+            if let Some(hit_record) = scene.traverse(&current_ray) {
+                let material = global.get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material();
+                let scattered_ray = material.scatter(&current_ray, &hit_record);
+                current_ray = scattered_ray;
+                if material.is_emissive() {
+
+                    return current_ray.color * material.emitted();
 
                 }
                 else {

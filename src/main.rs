@@ -65,12 +65,12 @@ fn main() {
     /// Image dimensions and quality settings
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
-    let fov = 90;                             // Wide field of view for dramatic perspective
+    let fov = 90;                        // Wide field of view for dramatic perspective
     let samples_per_pixel: u32 = 10;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
 
     // Depth of field (distance focusing) parameters
-    let focus_distance: f32 = 2.0;  // Distance from camera where objects appear sharp
+    let focus_distance: f32 = 2.0;     // Distance from camera where objects appear sharp
     let aperture: f32 = 0.01;          // Camera aperture diameter (0.0 = pinhole, larger = more blur)
 
     // Create the virtual camera with specified parameters and sun direction
