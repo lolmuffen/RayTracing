@@ -122,79 +122,75 @@ impl Camera {
     /// Render: opens a window and generates rays for each pixel using multi-threaded 2D pixel processing.
     /// Each thread can safely write to its own pixel using 2D coordinates (x, y).
     pub fn render(&self) {
-    let (width, height) = (self.resolution.0 as usize, self.resolution.1 as usize);
-    let pixel_count = width * height;
+        let (width, height) = (self.resolution.0 as usize, self.resolution.1 as usize);
+        let pixel_count = width * height;
 
-    let mut window = Window::new(
-        "RayTracing - Progressive",
-        width,
-        height,
-        WindowOptions::default(),
-    ).expect("Unable to open window");
+        let mut window = Window::new(
+            "RayTracing - Progressive",
+            width,
+            height,
+            WindowOptions::default(),
+        ).expect("Unable to open window");
 
-    // Each pixel accumulates raw (linear) color across all frames
-    let mut accumulation_buffer: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
-    let mut pixel_buffer: Vec<u32> = vec![0u32; pixel_count];
-    let mut new_samples: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
+        // Each pixel accumulates raw (linear) color across all frames
+        let mut accumulation_buffer: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
+        let mut pixel_buffer: Vec<u32> = vec![0u32; pixel_count];
+        let mut new_samples: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
 
-    let mut total_samples: u32 = 0;        // total samples accumulated so far
-    let samples_this_frame = self.samples_per_pixel; // how many new samples to add each frame
-    let mut frame_count: u32 = 0;
-    let frame_count_before_print = 10;
-    let mut frame_time_average = Duration::new(0, 0);
+        let mut total_samples: u32 = 0;        // total samples accumulated so far
+        let samples_this_frame = self.samples_per_pixel; // how many new samples to add each frame
+        let mut frame_count: u32 = 0;
+        let frame_count_before_print = 10;
+        let mut frame_time_average = Duration::new(0, 0);
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
-        frame_count += 1;
-        let frame_start = Instant::now();
+        while window.is_open() && !window.is_key_down(Key::Escape) {
+            frame_count += 1;
+            let frame_start = Instant::now();
 
-        // --- Step 1: accumulate new samples into a per-row delta buffer ---
-        // We collect new contributions in a separate vec so rayon can work
-        // without touching accumulation_buffer (which isn't Send across chunks easily)
+            // --- Step 1: accumulate new samples into a per-row delta buffer ---
+            // We collect new contributions in a separate vec so rayon can work
+            // without touching accumulation_buffer (which isn't Send across chunks easily)
 
+            new_samples
+                .par_chunks_mut(width)
+                .enumerate()
+                .for_each(|(y, row)| {
+                    for x in 0..width {
+                        let mut accumulated = Color::new(0.0, 0.0, 0.0);
+                        for _ in 0..samples_this_frame {
+                            let ray = self.get_sample_ray(x as u32, y as u32);
+                            accumulated += self.path_pixel_color(ray);
+                        }
+                        row[x] = accumulated;
+                    }
+                });
 
-        new_samples
-            .par_iter_mut()
-            .enumerate()
-            .for_each(|(idx, sample)| {
-                let x = idx % width;
-                let y = idx / width;
-                let mut color = Color::new(0.0, 0.0, 0.0);
-                for _ in 0..samples_this_frame {
-                    let ray = self.get_sample_ray(x as u32, y as u32);
-                    color += self.path_pixel_color(ray);
-                }
-                *sample = color;
-            });
+            total_samples += samples_this_frame;
+            let inv_total = 1.0 / total_samples as f32;
 
+            accumulation_buffer
+                .par_iter_mut()
+                .zip(new_samples.par_iter())
+                .zip(pixel_buffer.par_iter_mut())
+                .for_each(|((acc, new), pixel)| {
+                    *acc += *new;
+                    *pixel = Color::color_to_hex(Color::gamma_correct_color(&(*acc * inv_total)));
+                });
+            
 
+            window.update_with_buffer(&pixel_buffer, width, height).ok();
 
-        total_samples += samples_this_frame;
-        let inv_total = 1.0 / total_samples as f32;
+            let frame_time = frame_start.elapsed();
+            frame_time_average += frame_time;
 
-        accumulation_buffer
-            .par_iter_mut()
-            .zip(new_samples.par_iter())
-            .zip(pixel_buffer.par_iter_mut())
-            .for_each(|((acc, new), pixel)| {
-                *acc += *new;
-                let avg = *acc * inv_total;
-                *pixel = Color::color_to_hex(Color::gamma_correct_color(&avg));
-            });
-        
-
-        window.update_with_buffer(&pixel_buffer, width, height).ok();
-
-        let frame_time = frame_start.elapsed();
-        frame_time_average += frame_time;
-
-        if frame_count % frame_count_before_print == 0 {
-            println!(
-                "Frame {frame_count} | Total samples: {total_samples} | \
-                 Avg frame time: {}ms",
-                frame_time_average.as_millis() / frame_count_before_print as u128
-            );
-            frame_time_average = Duration::new(0, 0);
-        }
+            if frame_count % frame_count_before_print == 0 {
+                println!(
+                    "Frame {frame_count} | Total samples: {total_samples} | \
+                    Avg frame time: {}ms",
+                    frame_time_average.as_millis() / frame_count_before_print as u128
+                );
+                frame_time_average = Duration::new(0, 0);
+            }
     }
 }
 

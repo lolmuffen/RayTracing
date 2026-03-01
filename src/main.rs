@@ -22,7 +22,7 @@ fn main() {
     let material_ground = Material::lambertian(1.0,Color::new(0.8, 0.8, 0.0));
 
     /// Center sphere: blue diffuse material for classic matte appearance
-    let material_center = Material::specular(Color::new(0.1, 0.2, 0.5), 1.0, 0.0, 1.0);
+    let material_center = Material::specular(Color::new(0.1, 0.2, 0.5), 1.0, 0.0, 0.8, );
 
     /// Left sphere: metallic with low roughness for mirror-like reflections
     let material_left = Material::metal(1.0, Color::new(0.8, 0.8, 0.8), 0.0);
@@ -77,7 +77,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(-0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution
