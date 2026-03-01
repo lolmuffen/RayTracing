@@ -135,6 +135,7 @@ impl Camera {
     // Each pixel accumulates raw (linear) color across all frames
     let mut accumulation_buffer: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
     let mut pixel_buffer: Vec<u32> = vec![0u32; pixel_count];
+    let mut new_samples: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
 
     let mut total_samples: u32 = 0;        // total samples accumulated so far
     let samples_this_frame = self.samples_per_pixel; // how many new samples to add each frame
@@ -149,31 +150,37 @@ impl Camera {
         // --- Step 1: accumulate new samples into a per-row delta buffer ---
         // We collect new contributions in a separate vec so rayon can work
         // without touching accumulation_buffer (which isn't Send across chunks easily)
-        let new_samples: Vec<Vec3> = (0..height)
-            .into_par_iter()
-            .flat_map(|y| {
-                (0..width).map(move |x| {
-                    let mut color = Color::new(0.0, 0.0, 0.0);
-                    for _ in 0..samples_this_frame {
-                        let ray = self.get_sample_ray(x as u32, y as u32);
-                        color += self.path_pixel_color(ray);
-                    }
-                    color
-                }).collect::<Vec<_>>()
-            })
-            .collect();
 
-        // --- Step 2: add new samples to accumulation buffer (single-threaded, trivial) ---
+
+        new_samples
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(idx, sample)| {
+                let x = idx % width;
+                let y = idx / width;
+                let mut color = Color::new(0.0, 0.0, 0.0);
+                for _ in 0..samples_this_frame {
+                    let ray = self.get_sample_ray(x as u32, y as u32);
+                    color += self.path_pixel_color(ray);
+                }
+                *sample = color;
+            });
+
+
+
         total_samples += samples_this_frame;
-        for (acc, new) in accumulation_buffer.iter_mut().zip(new_samples.iter()) {
-            *acc += *new;
-        }
+        let inv_total = 1.0 / total_samples as f32;
 
-        // --- Step 3: convert accumulation buffer to display pixels ---
-        for (i, acc) in accumulation_buffer.iter().enumerate() {
-            let avg = *acc / total_samples as f32;
-            pixel_buffer[i] = Color::color_to_hex(Color::gamma_correct_color(&avg));
-        }
+        accumulation_buffer
+            .par_iter_mut()
+            .zip(new_samples.par_iter())
+            .zip(pixel_buffer.par_iter_mut())
+            .for_each(|((acc, new), pixel)| {
+                *acc += *new;
+                let avg = *acc * inv_total;
+                *pixel = Color::color_to_hex(Color::gamma_correct_color(&avg));
+            });
+        
 
         window.update_with_buffer(&pixel_buffer, width, height).ok();
 

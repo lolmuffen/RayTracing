@@ -49,7 +49,7 @@ fn main() {
     /// Right sphere: Shows rougher metallic surface
     let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.6, 0.0), material_right);
 
-    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(4.0, 4.0, 4.0), Material::emissive(Color::new(4.0, 4.0, 4.0), 1.0));
+    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(0.8, 0.5, 0.2), Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 
     // =============================================================================
     // Scene Assembly
@@ -66,7 +66,7 @@ fn main() {
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
     let fov = 90;                        // Wide field of view for dramatic perspective
-    let samples_per_pixel: u32 = 5;          // Anti-aliasing quality (higher = smoother)
+    let samples_per_pixel: u32 = 3;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
 
     // Depth of field (distance focusing) parameters
