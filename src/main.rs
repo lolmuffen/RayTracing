@@ -66,7 +66,7 @@ fn main() {
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
     let fov = 90;                        // Wide field of view for dramatic perspective
-    let samples_per_pixel: u32 = 10;          // Anti-aliasing quality (higher = smoother)
+    let samples_per_pixel: u32 = 5;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
 
     // Depth of field (distance focusing) parameters
@@ -77,7 +77,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 1.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(-1.0, 0.0, -0.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution
