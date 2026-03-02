@@ -43,20 +43,20 @@ fn main() {
 
     // Ground plane: Large sphere positioned below the scene
     // Acts as an infinite-looking ground due to its size relative to other objects
-    let sphere1 = Sphere::new(Vec3 { x: 0.0, y: -101.0, z: -1.0 }, 100.5, Color::new(0.8, 0.8, 0.0), material_ground);
+    let sphere1 = Sphere::new(Vec3 { x: 0.0, y: -101.0, z: -1.0 }, 100.5, material_ground);
 
     // Center sphere: Main subject of the scene
-    let sphere2 = Sphere::new(Vec3 { x: 0.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.1, 0.2, 0.5), material_center);
+    let sphere2 = Sphere::new(Vec3 { x: 0.0, y: 0.0, z: -1.0 }, 0.6, material_center);
 
     // Left sphere: Demonstrates metallic reflection
-    let sphere3 = Sphere::new(Vec3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.8, 0.8), material_left);
+    let sphere3 = Sphere::new(Vec3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, material_left);
 
     // Right sphere: Shows rougher metallic surface
-    let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, Color::new(0.8, 0.6, 0.0), material_right);
+    let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, material_right);
 
-    let triangle = Triangle::new(sphere3.position + Vec3::new(0.0, 1.0, 0.0), sphere4.position + Vec3::new(0.0, 1.0, 0.0), Vec3::new(0.0, 2.0, -1.0), triangle_material);
+    let triangle = Triangle::new(Vec3::new(0.0, 2.0, -1.0), sphere4.position + Vec3::new(0.0, 1.0, 0.0), sphere3.position + Vec3::new(0.0, 1.0, 0.0), triangle_material);
 
-    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Color::new(0.8, 0.5, 0.2), Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
+    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 
     // =============================================================================
     // Scene Assembly

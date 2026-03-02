@@ -191,39 +191,35 @@ impl Camera {
                 );
                 frame_time_average = Duration::new(0, 0);
             }
+        }
     }
-}
 
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
-
         let global = get_GLOBAL();
-        let scene  = global.get_scene();
-        let depth  = global.get_depth_limit();
+        let scene = global.get_scene();
+        let depth = global.get_depth_limit();
 
         for _bounce in 0..depth {
             if let Some(hit_record) = scene.traverse(&current_ray, global) {
-
-                let material = global.get_object_by_id(hit_record.object_id.unwrap()).unwrap().get_material();
-                let scattered_ray = material.scatter(&current_ray, &hit_record);
-                current_ray = scattered_ray;
+                let material = global
+                    .get_object_by_id(hit_record.object_id.unwrap())
+                    .unwrap()
+                    .get_material();
 
                 if material.is_emissive() {
-
-                    return current_ray.color;
-
+                    // Check emissive BEFORE scattering, return current throughput * emission
+                    let scattered = material.scatter(&current_ray, &hit_record);
+                    return scattered.color;
                 }
-                else {
-                    continue;
-                }
-            }
-            else 
-            {
+
+                let scattered_ray = material.scatter(&current_ray, &hit_record);
+                current_ray = scattered_ray;
+            } else {
                 return current_ray.color * self.background_color(&current_ray);
             }
         }
 
-        return current_ray.color;
-
+        Color::zero()  // Ray exceeded depth limit — return black, not accumulated color
     } 
 
     fn background_color(&self, ray: &Ray) -> Color {

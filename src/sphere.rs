@@ -9,17 +9,15 @@ pub struct Sphere {
     pub ID: u32,
     pub position: Vec3,
     pub radius: f32,
-    pub color: Vec3,
     pub material: Material,
 }
 
 impl Sphere {
-    pub fn new(position: Vec3, radius: f32, color: Vec3, material: Material) -> Sphere {
+    pub fn new(position: Vec3, radius: f32, material: Material) -> Sphere {
         let sphere = Sphere {
             ID: get_GLOBAL().next_object_id(), 
             position, 
             radius, 
-            color, 
             material 
         };
         sphere

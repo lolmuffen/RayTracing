@@ -26,10 +26,9 @@ impl sceneBVH {
     /// Recursively build sceneBVH tree by splitting shapes in half
     fn build_recursive(shape_ids: Vec<u32>, depth: usize, child_ID: u8) -> Self {
         // Calculate bounding box for current set of shapes
-        let mut bounding_box = BoundingBox::new(
-            Vec3::new(0.0, 0.0, 0.0),
-            Vec3::new(0.0, 0.0, 0.0),
-        );
+        let mut bounding_box = BoundingBox::new_empty();
+
+
 
         for &id in &shape_ids {
             bounding_box.grow_to_fit(id);
@@ -202,26 +201,33 @@ impl BoundingBox {
         BoundingBox { min, max }
     }
 
+    pub fn new_empty() -> Self {
+        BoundingBox {
+            min: Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            max: Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY),
+        }
+    }
+
     pub fn grow_to_fit(&mut self, new_shape_id: u32) {
         if let Some(shape) = get_GLOBAL().get_object_by_id(new_shape_id) {
             let shape_min = shape.get_min_bounds();
             let shape_max = shape.get_max_bounds();
-            if self.min.x > shape_min.x {
+            if self.min.x < shape_min.x {
                 self.min.x = shape_min.x;
             }
-            if self.min.y > shape_min.y {
+            if self.min.y < shape_min.y {
                 self.min.y = shape_min.y;
             }
-            if self.min.z > shape_min.z {
+            if self.min.z < shape_min.z {
                 self.min.z = shape_min.z;
             }
-            if self.max.x < shape_max.x {
+            if self.max.x > shape_max.x {
                 self.max.x = shape_max.x;
             }
-            if self.max.y < shape_max.y {
+            if self.max.y > shape_max.y {
                 self.max.y = shape_max.y;
             }
-            if self.max.z < shape_max.z {
+            if self.max.z > shape_max.z {
                 self.max.z = shape_max.z;
             }
         }
