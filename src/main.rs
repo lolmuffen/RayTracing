@@ -9,12 +9,10 @@ mod BVH;
 mod camera;
 mod triangle;
 
-use crate::sphere::Sphere;
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
 use crate::utils::{Global, get_GLOBAL};
 use crate::material::Material;
-use crate::triangle::Triangle;
 use crate::shape::Shape;
 
 
