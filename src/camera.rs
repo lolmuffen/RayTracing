@@ -209,7 +209,7 @@ impl Camera {
 
                 if material.is_emissive() {
 
-                    return current_ray.color * material.emitted();
+                    return current_ray.color;
 
                 }
                 else {
