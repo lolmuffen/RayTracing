@@ -6,6 +6,7 @@
 //! and interval arithmetic for robust intersection testing.
 
 use rand::RngExt;
+use crate::shape;
 use crate::{shape::Shape, vector::Vec3};
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -93,7 +94,7 @@ impl Interval {
 
 pub struct Global { 
     pub global_object_id: AtomicU32,
-    pub global_object_list: OnceLock<Vec<Box<dyn Shape + Send + Sync>>>,
+    pub global_object_list: OnceLock<Vec<Shape>>,
     pub BVH_DEPTH_LIMIT: usize,
     pub scene: OnceLock<sceneBVH>,
     pub bounce_depth_limit: u32,
@@ -119,17 +120,17 @@ impl Global {
         self.global_object_id.fetch_add(1, Ordering::Relaxed) + 1
     }
 
-    pub fn set_objects(&self, objects: Vec<Box<dyn Shape + Send + Sync>>) -> Result<(), Vec<Box<dyn Shape + Send + Sync>>> {
+    pub fn set_objects(&self, objects: Vec<Shape>) -> Result<(), Vec<Shape>> {
         self.global_object_list.set(objects)
     }
 
-    pub fn get_objects(&self) -> Option<&Vec<Box<dyn Shape + Send + Sync>>> {
+    pub fn get_objects(&self) -> Option<&Vec<Shape>> {
         self.global_object_list.get()
     }
 
     /// O(1) lookup: IDs are 1-based, so `id - 1` is the direct index.
     #[inline(always)]
-    pub fn get_object_by_id(&self, id: u32) -> Option<&Box<dyn Shape + Send + Sync>> {
+    pub fn get_object_by_id(&self, id: u32) -> Option<&Shape> {
         let idx = id.checked_sub(1)? as usize;
         self.global_object_list.get()?.get(idx)
     }

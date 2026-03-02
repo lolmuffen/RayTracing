@@ -214,8 +214,12 @@ impl Camera {
 
                 let scattered_ray = material.scatter(&current_ray, &hit_record);
                 current_ray = scattered_ray;
-            } else {
+
+            } 
+            else {
+
                 return current_ray.color * self.background_color(&current_ray);
+                
             }
         }
 

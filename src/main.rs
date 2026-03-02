@@ -15,6 +15,7 @@ use crate::camera::{Camera, Color};
 use crate::utils::{Global, get_GLOBAL};
 use crate::material::Material;
 use crate::triangle::Triangle;
+use crate::shape::Shape;
 
 
 fn main() {
@@ -43,26 +44,26 @@ fn main() {
 
     // Ground plane: Large sphere positioned below the scene
     // Acts as an infinite-looking ground due to its size relative to other objects
-    let sphere1 = Sphere::new(Vec3 { x: 0.0, y: -101.0, z: -1.0 }, 100.5, material_ground);
+    let sphere1 = Shape::sphere(Vec3 { x: 0.0, y: -101.0, z: -1.0 }, 100.5, material_ground);
 
     // Center sphere: Main subject of the scene
-    let sphere2 = Sphere::new(Vec3 { x: 0.0, y: 0.0, z: -1.0 }, 0.6, material_center);
+    let sphere2 = Shape::sphere(Vec3 { x: 0.0, y: 0.0, z: -1.0 }, 0.6, material_center);
 
     // Left sphere: Demonstrates metallic reflection
-    let sphere3 = Sphere::new(Vec3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, material_left);
+    let sphere3 = Shape::sphere(Vec3 { x: -1.0, y: 0.0, z: -1.0 }, 0.5, material_left);
 
     // Right sphere: Shows rougher metallic surface
-    let sphere4 = Sphere::new(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, material_right);
+    let sphere4 = Shape::sphere(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, material_right);
 
-    let triangle = Triangle::new(Vec3::new(0.0, 2.0, -1.0), sphere4.position + Vec3::new(0.0, 1.0, 0.0), sphere3.position + Vec3::new(0.0, 1.0, 0.0), triangle_material);
+    let triangle = Shape::triangle(Vec3::new(0.0, 2.0, -1.0), Vec3 { x: 1.0, y: 1.0, z: -1.0 }, Vec3 { x: -1.0, y: 1.0, z: -1.0 }, triangle_material);
 
-    let light = Sphere::new(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
+    let light = Shape::sphere(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 
     // =============================================================================
     // Scene Assembly
     // =============================================================================
     // Add all objects to the scene container for intersection testing
-    let objects: Vec<Box<dyn crate::shape::Shape + Send + Sync>> = vec![Box::new(sphere1), Box::new(sphere2), Box::new(sphere3), Box::new(sphere4), Box::new(light), Box::new(triangle)];
+    let objects: Vec<Shape> = vec![sphere1, sphere2, sphere3, sphere4, triangle, light];
 
 
     // Set global state with our scene objects and lights for access during rendering
@@ -72,7 +73,7 @@ fn main() {
     // Image dimensions and quality settings
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
-    let fov = 90;                        // Wide field of view for dramatic perspective
+    let fov = 120;                        // Wide field of view for dramatic perspective
     let samples_per_pixel: u32 = 3;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 10;                  // Maximum light bounces (higher = more accurate GI)
 
@@ -84,7 +85,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(-0.0, 0.0, 0.0), Vec3::new(0.0, 1.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(0.0, 0.0, 1.0), Vec3::new(0.0, 1.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution
