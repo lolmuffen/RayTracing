@@ -8,6 +8,7 @@ mod shape;
 mod BVH;
 mod camera;
 mod triangle;
+mod gpu_structs;
 
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
