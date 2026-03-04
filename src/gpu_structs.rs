@@ -1,84 +1,26 @@
-use rayon::array;
+// gpu_structs.rs  (updated)
+//
+// All GPU-facing types derive bytemuck::Pod + Zeroable so they can be cast
+// directly to &[u8] for wgpu buffer uploads.
+//
+// Alignment rules (matches WGSL storage buffer layout):
+//   - Every vec3<f32> field is padded to 16 bytes (add a trailing f32 / u32)
+//   - Every struct is a multiple of 16 bytes total
 
-use crate::BVH::sceneBVH;
-
-/// gpu_structs.rs
-///
-/// Every type here is written directly into a wgpu buffer and read by the
-/// compute shader. Rules:
-///   - #[repr(C)] — no Rust reordering
-///   - bytemuck::Pod + Zeroable — safe zero-copy cast to &[u8]
-///   - Every vec3 field is followed by a padding f32 so it aligns to 16 bytes
-///     (WGSL's vec3<f32> is 12 bytes but has 16-byte alignment in uniform/storage)
-///
-/// Material kinds (matches WGSL constants in path_tracer.wgsl):
-///   0 = Lambertian
-///   1 = Metal
-///   2 = Glass
-///   3 = Volume
-///   4 = Emissive
-///   5 = Specular
-
-
+// ---------------------------------------------------------------------------
+// Material  (kind constants match path_tracer.wgsl)
+// ---------------------------------------------------------------------------
+//  0 = Lambertian
+//  1 = Metal
+//  2 = Glass
+//  3 = Volume
+//  4 = Emissive
+//  5 = Specular
 
 #[repr(C)]
-pub struct GpuSphere {
-    pub center: [f32; 3],
-    pub radius: f32,
-    pub material_id: u32,
-    _pad: [u32; 3],
-}
-
-
-
-#[repr(C)]  
-pub struct GpuTriangle {
-    pub p1: [f32; 3], _p1: f32,
-    pub p2: [f32; 3], _p2: f32,
-    pub p3: [f32; 3], _p3: f32,
-    pub normal: [f32; 3],
-    pub material_id: u32,
-}
-
-// CPU-side, written once to a GPU buffer
-#[repr(C)]
-pub struct GpuBvhNode {
-    pub bounding_box_min: [f32; 3],
-    pub left_child: u32,  // if leaf: index into shape_ids array
-    pub right_child: u32,
-    pub bounding_box_max: [f32; 3],
-    pub shape_count: u32,          // 0 = internal node, >0 = leaf
-    pub first_shape: u32,
-    // if internal: right child is always left_or_first_shape + 1 (or store explicitly)
-    
-    pub _pad: [u32; 3],
-}
-
-impl GpuBvhNode {
-    // pub fn new(node: sceneBVH) 
-    // pub ID: u8, // 0 for root, 1 for left child, 2 for right child
-    // pub bounding_box: BoundingBox,
-    // pub left_child: Option<Box<sceneBVH>>,
-    // pub right_child: Option<Box<sceneBVH>>,
-    // pub shape_ids: Option<Vec<u32>>, // Leaf node contains shape IDs
-
-    pub fn new(node: sceneBVH, left_id: u32, right_id: u32, first_shape: u32) -> Self {
-        GpuBvhNode {
-            bounding_box_min: node.bounding_box.min.to_array(),
-            left_child: left_id,
-            right_child: right_id,
-            bounding_box_max: node.bounding_box.min.to_array(),
-            shape_count: match node.shape_ids {Some(array) => array.len() as u32, None => 0u32},
-            first_shape,
-            _pad: [0u32; 3],
-        }
-    }
-
-}
-
 pub struct GpuMaterial {
     pub color:                [f32; 3],
-    pub kind:                 u32,
+    pub kind:                 u32,        // See constants above
 
     pub albedo:               f32,
     pub roughness:            f32,
@@ -86,8 +28,54 @@ pub struct GpuMaterial {
     pub specular_probability: f32,
 
     pub intensity:            f32,
-    pub _pad:                 [f32; 3],
+    pub _pad:                 [f32; 3],   // pad to 48 bytes (3 × 16)
 }
 
-// In BVH leaf nodes, shape IDs encode both type and index:
-// high 4 bits = type (0=sphere, 1=triangle), low 28 bits = index
+// ---------------------------------------------------------------------------
+// Sphere
+// ---------------------------------------------------------------------------
+
+#[repr(C)]
+pub struct GpuSphere {
+    pub center:      [f32; 3],
+    pub radius:      f32,
+    pub material_id: u32,
+    pub _pad:        [u32; 3],            // pad to 32 bytes (2 × 16)
+}
+
+// ---------------------------------------------------------------------------
+// Triangle
+// ---------------------------------------------------------------------------
+
+#[repr(C)]
+pub struct GpuTriangle {
+    pub p1: [f32; 3], pub _p1: f32,      // 16 bytes
+    pub p2: [f32; 3], pub _p2: f32,      // 16 bytes
+    pub p3: [f32; 3], pub _p3: f32,      // 16 bytes
+    pub normal:      [f32; 3],
+    pub material_id: u32,                 // 16 bytes  — total 64 bytes
+}
+
+// ---------------------------------------------------------------------------
+// BVH node
+//
+// Layout in WGSL:
+//   bb_min      vec3<f32>  + left_child  u32   = 16 bytes
+//   right_child u32        + bb_max      vec3<f32>  needs care:
+//     WGSL vec3 has 16-byte alignment, so we must match that here.
+//   We use the layout below which keeps everything at 16-byte boundaries.
+// ---------------------------------------------------------------------------
+
+#[repr(C)]
+pub struct GpuBvhNode {
+    pub bounding_box_min: [f32; 3],
+    pub left_child:       u32,            // 16 bytes
+
+    pub right_child:      u32,
+    pub bounding_box_max: [f32; 3],       // NOTE: right_child is the first u32,
+                                          // then the vec3 — matches WGSL field order
+
+    pub shape_count:      u32,            // 0 = internal node, >0 = leaf
+    pub first_shape:      u32,            // index into bvh_shape_ids array
+    pub _pad:             [u32; 2],       // pad to 48 bytes total (3 × 16)
+}

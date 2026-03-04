@@ -205,7 +205,7 @@ pub fn flatten_recursive(&self, nodes: &mut Vec<GpuBvhNode>, object_ids: &mut Ve
         right_child: 0,
         shape_count: 0,
         first_shape: 0,
-        _pad: [0u32; 3],
+        _pad: [0u32; 2],
     });
 
     if let Some(ids) = &self.shape_ids {
