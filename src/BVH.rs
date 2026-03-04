@@ -2,7 +2,7 @@ use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
 use crate::utils::{Global, get_GLOBAL};
 use crate::vector::Vec3;
-
+use crate::gpu_structs::GpuBvhNode;
 
 pub struct sceneBVH {
     pub ID: u8, // 0 for root, 1 for left child, 2 for right child
@@ -184,6 +184,19 @@ impl sceneBVH {
             (None, Some(r)) => Some(r),
             (None, None) => None,
         }
+    }
+
+    pub fn flatten(&self) -> (Vec<u32>, Vec<GpuBvhNode>) {
+        let mut nodes: Vec<GpuBvhNode> = Vec::new();
+        let mut object_ids: Vec<u32> = Vec::new();
+        
+        self.flatten_recursive(&mut nodes, &mut object_ids);
+
+        return (object_ids, nodes)
+    }
+
+    pub fn flatten_recursive(&self, nodes: &mut Vec<GpuBvhNode>, object_ids: &mut Vec<u32>) -> (Vec<u32>, Vec<GpuBvhNode>) {
+        todo!()
     }
 
 }

@@ -1,3 +1,7 @@
+use rayon::array;
+
+use crate::BVH::sceneBVH;
+
 /// gpu_structs.rs
 ///
 /// Every type here is written directly into a wgpu buffer and read by the
@@ -18,15 +22,17 @@
 
 
 #[repr(C)]
-struct GpuSphere {
+pub struct GpuSphere {
     center: [f32; 3],
     radius: f32,
     material_id: u32,
     _pad: [u32; 3],
 }
 
+
+
 #[repr(C)]  
-struct GpuTriangle {
+pub struct GpuTriangle {
     p1: [f32; 3], _p1: f32,
     p2: [f32; 3], _p2: f32,
     p3: [f32; 3], _p3: f32,
@@ -36,7 +42,7 @@ struct GpuTriangle {
 
 // CPU-side, written once to a GPU buffer
 #[repr(C)]
-struct GpuBvhNode {
+pub struct GpuBvhNode {
     bounding_box_min: [f32; 3],
     left_child: u32,  // if leaf: index into shape_ids array
     right_child: u32,
@@ -48,6 +54,27 @@ struct GpuBvhNode {
     _pad: [u32; 3],
 }
 
+impl GpuBvhNode {
+    // pub fn new(node: sceneBVH) 
+    // pub ID: u8, // 0 for root, 1 for left child, 2 for right child
+    // pub bounding_box: BoundingBox,
+    // pub left_child: Option<Box<sceneBVH>>,
+    // pub right_child: Option<Box<sceneBVH>>,
+    // pub shape_ids: Option<Vec<u32>>, // Leaf node contains shape IDs
+
+    pub fn new(node: sceneBVH, left_id: u32, right_id: u32, first_shape: u32) -> Self {
+        GpuBvhNode {
+            bounding_box_min: node.bounding_box.min.to_array(),
+            left_child: left_id,
+            right_child: right_id,
+            bounding_box_max: node.bounding_box.min.to_array(),
+            shape_count: match node.shape_ids {Some(array) => array.len() as u32, None => 0u32},
+            first_shape,
+            _pad: [0u32; 3],
+        }
+    }
+
+}
 
 pub struct GpuMaterial {
     pub color:                [f32; 3],
