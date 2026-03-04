@@ -195,9 +195,49 @@ impl sceneBVH {
         return (object_ids, nodes)
     }
 
-    pub fn flatten_recursive(&self, nodes: &mut Vec<GpuBvhNode>, object_ids: &mut Vec<u32>) -> (Vec<u32>, Vec<GpuBvhNode>) {
-        todo!()
+pub fn flatten_recursive(&self, nodes: &mut Vec<GpuBvhNode>, object_ids: &mut Vec<u32>) -> u32 {
+    // Reserve a slot for this node and remember its index
+    let my_index = nodes.len() as u32;
+    nodes.push(GpuBvhNode {
+        bounding_box_min: self.bounding_box.min.to_array(),
+        bounding_box_max: self.bounding_box.max.to_array(),
+        left_child: 0,
+        right_child: 0,
+        shape_count: 0,
+        first_shape: 0,
+        _pad: [0u32; 3],
+    });
+
+    if let Some(ids) = &self.shape_ids {
+        // Leaf node: write shape IDs into the flat object_ids list
+        let first_shape = object_ids.len() as u32;
+        let shape_count = ids.len() as u32;
+        object_ids.extend_from_slice(ids);
+
+        nodes[my_index as usize].shape_count = shape_count;
+        nodes[my_index as usize].first_shape = first_shape;
+        // left_child/right_child are unused for leaves — leave as 0
+    } else {
+        // Internal node: recurse into children and record their indices
+        let left_index = if let Some(left) = &self.left_child {
+            left.flatten_recursive(nodes, object_ids)
+        } else {
+            0
+        };
+
+        let right_index = if let Some(right) = &self.right_child {
+            right.flatten_recursive(nodes, object_ids)
+        } else {
+            0
+        };
+
+        nodes[my_index as usize].left_child = left_index;
+        nodes[my_index as usize].right_child = right_index;
+        // shape_count stays 0 — signals to the shader this is an internal node
     }
+
+    my_index
+}
 
 }
 

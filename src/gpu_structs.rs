@@ -23,9 +23,9 @@ use crate::BVH::sceneBVH;
 
 #[repr(C)]
 pub struct GpuSphere {
-    center: [f32; 3],
-    radius: f32,
-    material_id: u32,
+    pub center: [f32; 3],
+    pub radius: f32,
+    pub material_id: u32,
     _pad: [u32; 3],
 }
 
@@ -33,25 +33,25 @@ pub struct GpuSphere {
 
 #[repr(C)]  
 pub struct GpuTriangle {
-    p1: [f32; 3], _p1: f32,
-    p2: [f32; 3], _p2: f32,
-    p3: [f32; 3], _p3: f32,
-    normal: [f32; 3],
-    material_id: u32,
+    pub p1: [f32; 3], _p1: f32,
+    pub p2: [f32; 3], _p2: f32,
+    pub p3: [f32; 3], _p3: f32,
+    pub normal: [f32; 3],
+    pub material_id: u32,
 }
 
 // CPU-side, written once to a GPU buffer
 #[repr(C)]
 pub struct GpuBvhNode {
-    bounding_box_min: [f32; 3],
-    left_child: u32,  // if leaf: index into shape_ids array
-    right_child: u32,
-    bounding_box_max: [f32; 3],
-    shape_count: u32,          // 0 = internal node, >0 = leaf
-    first_shape: u32,
+    pub bounding_box_min: [f32; 3],
+    pub left_child: u32,  // if leaf: index into shape_ids array
+    pub right_child: u32,
+    pub bounding_box_max: [f32; 3],
+    pub shape_count: u32,          // 0 = internal node, >0 = leaf
+    pub first_shape: u32,
     // if internal: right child is always left_or_first_shape + 1 (or store explicitly)
     
-    _pad: [u32; 3],
+    pub _pad: [u32; 3],
 }
 
 impl GpuBvhNode {
