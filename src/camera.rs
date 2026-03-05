@@ -197,9 +197,8 @@ impl Camera {
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
         let global = get_GLOBAL();
         let scene = global.get_scene();
-        let depth = global.get_depth_limit();
 
-        for _bounce in 0..depth {
+        for _bounce in 0..self.depth {
             if let Some(hit_record) = scene.traverse(&current_ray, global) {
                 let material = global
                     .get_object_by_id(hit_record.object_id.unwrap())

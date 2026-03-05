@@ -166,6 +166,11 @@ impl Vec3 {
         v.x.abs() < EPSILON && v.y.abs() < EPSILON && v.z.abs() < EPSILON
     }
 
+    #[inline(always)]
+    pub fn to_array(&self) -> [f32; 3] {
+        [self.x, self.y, self.z]
+    }
+
 }
 
 // Operator overloads for more natural mathematical syntax

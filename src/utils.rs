@@ -97,7 +97,6 @@ pub struct Global {
     pub global_object_list: OnceLock<Vec<Shape>>,
     pub BVH_DEPTH_LIMIT: usize,
     pub scene: OnceLock<sceneBVH>,
-    pub bounce_depth_limit: u32,
 }
 
 impl Global {
@@ -107,7 +106,6 @@ impl Global {
             global_object_list: OnceLock::new(),
             BVH_DEPTH_LIMIT: 20,
             scene: OnceLock::new(),
-            bounce_depth_limit: 16,
         };
         
         let r1: Result<(), Global> = GLOBAL.set(global);
@@ -133,11 +131,6 @@ impl Global {
     pub fn get_object_by_id(&self, id: u32) -> Option<&Shape> {
         let idx = id.checked_sub(1)? as usize;
         self.global_object_list.get()?.get(idx)
-    }
-
-    #[inline(always)]
-    pub fn get_depth_limit(&self) -> u32 {
-        self.bounce_depth_limit
     }
 
     #[inline(always)]
