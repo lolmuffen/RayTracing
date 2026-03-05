@@ -2,6 +2,7 @@ use crate::intersection::Intersection;
 use crate::vector::Vec3;
 use crate::ray::Ray;
 use crate::utils::random_double;
+use crate::gpu_structs::GpuMaterial;
 
 /// Consolidated material kind. Each variant holds its parameters.
 /// Methods are implemented directly on the enum — no trait indirection,
@@ -187,5 +188,88 @@ impl Material {
         let mut r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
         r0 = r0 * r0;
         r0 + (1.0 - r0) * (1.0 - cos_theta).powi(5)
+    }
+
+    // -------------------------------------------------------------------------
+    // GPU serialisation
+    // -------------------------------------------------------------------------
+
+    /// Flatten this material into a [`GpuMaterial`] ready for a wgpu buffer.
+    ///
+    /// `kind` constants match the comments at the top of `gpu_structs.rs`:
+    ///   0 = Lambertian, 1 = Metal, 2 = Glass, 3 = Volume, 4 = Emissive, 5 = Specular
+    ///
+    /// Fields that are unused by a given variant are written as `0.0` so the
+    /// shader receives well-defined data regardless of which branch it takes.
+    pub fn to_gpu_material(&self) -> GpuMaterial {
+        match *self {
+            Material::Lambertian { albedo, color } => GpuMaterial {
+                color: color.to_array(),
+                kind: 0,
+                albedo,
+                roughness: 0.0,
+                refraction_index: 0.0,
+                specular_probability: 0.0,
+                intensity: 0.0,
+                _pad: [0.0; 3],
+            },
+
+            Material::Metal { albedo, color, roughness } => GpuMaterial {
+                color: color.to_array(),
+                kind: 1,
+                albedo,
+                roughness,
+                refraction_index: 0.0,
+                specular_probability: 0.0,
+                intensity: 0.0,
+                _pad: [0.0; 3],
+            },
+
+            Material::Glass { refraction_index, albedo, color } => GpuMaterial {
+                color: color.to_array(),
+                kind: 2,
+                albedo,
+                roughness: 0.0,
+                refraction_index,
+                specular_probability: 0.0,
+                intensity: 0.0,
+                _pad: [0.0; 3],
+            },
+
+            Material::Volume { density, color } => GpuMaterial {
+                color: color.to_array(),
+                kind: 3,
+                // density is stored in albedo — the shader interprets it as
+                // the per-unit-distance extinction coefficient
+                albedo: density,
+                roughness: 0.0,
+                refraction_index: 0.0,
+                specular_probability: 0.0,
+                intensity: 0.0,
+                _pad: [0.0; 3],
+            },
+
+            Material::Emissive { color, intensity } => GpuMaterial {
+                color: color.to_array(),
+                kind: 4,
+                albedo: 0.0,
+                roughness: 0.0,
+                refraction_index: 0.0,
+                specular_probability: 0.0,
+                intensity,
+                _pad: [0.0; 3],
+            },
+
+            Material::Specular { specular_probability, color, albedo, roughness } => GpuMaterial {
+                color: color.to_array(),
+                kind: 5,
+                albedo,
+                roughness,
+                refraction_index: 0.0,
+                specular_probability,
+                intensity: 0.0,
+                _pad: [0.0; 3],
+            },
+        }
     }
 }
