@@ -9,6 +9,7 @@ lazy_static = "1.4"
 winit = "0.30.12"
 minifb = "0.28.0"
 rayon = "1.7"
+wgpu = "27.0.1"
 
 [profile.release]
 debug = true

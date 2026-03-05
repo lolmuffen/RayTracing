@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use crate::gpu_structs::{GpuMaterial, GpuSphere, GpuTriangle};
+use crate::shape::{self, Shape};
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
@@ -194,6 +196,49 @@ impl Camera {
         }
     }
 
+    pub async fn gpu_render(&self) {
+        let (width, height) = self.resolution;
+        let pixel_count     = (width * height) as usize;
+
+         let instance = wgpu::Instance::default();
+
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                compatible_surface: None,
+                force_fallback_adapter: false,
+            })
+            .await
+            .expect("Failed to find a GPU adapter");
+
+        println!("Using adapter: {:?}", adapter.get_info().name);
+
+        let (device, queue) = adapter
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: None,
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::default(),
+                    ..Default::default()
+                },
+            )
+            .await
+            .expect("Failed to create device");
+
+        let global = get_GLOBAL();
+        let objects = global.get_objects().expect("Objects not set before render_gpu()");
+
+        let (gpu_spheres, gpu_triangles, gpu_materials) = Self::pack_scene(objects);
+        let (bvh_raw_ids, bvh_nodes)                   = global.get_scene().flatten();
+
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label:  Some("PathTracer"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../path_tracer.wgsl").into()),
+        });
+        todo!();
+    }
+
     pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
         let global = get_GLOBAL();
         let scene = global.get_scene();
@@ -260,6 +305,39 @@ impl Camera {
         let ray_color = Color::new(1.0, 1.0, 1.0); // Default white color for rays
 
         Ray::new(ray_origin, final_direction, ray_color)
+    }
+
+    fn pack_scene(objects: &[Shape]) -> (Vec<GpuSphere>, Vec<GpuTriangle>, Vec<GpuMaterial>) {
+        let mut gpu_spheres:   Vec<GpuSphere>   = Vec::new();
+        let mut gpu_triangles: Vec<GpuTriangle> = Vec::new();
+        let mut gpu_materials: Vec<GpuMaterial> = Vec::new();
+
+        for shape in objects {
+            let mat_id = gpu_materials.len() as u32;
+            gpu_materials.push(shape.get_material().to_gpu_material());
+
+            match shape {
+                Shape::Sphere { sphere } => {
+                    gpu_spheres.push(GpuSphere {
+                        center:      sphere.position.to_array(),
+                        radius:      sphere.radius,
+                        material_id: mat_id,
+                        _pad:        [0; 3],
+                    });
+                }
+                Shape::Triangle { tri } => {
+                    gpu_triangles.push(GpuTriangle {
+                        p1: tri.p1.to_array(), _p1: 0.0,
+                        p2: tri.p2.to_array(), _p2: 0.0,
+                        p3: tri.p3.to_array(), _p3: 0.0,
+                        normal:      tri.normal.to_array(),
+                        material_id: mat_id,
+                    });
+                }
+            }
+        }
+
+        (gpu_spheres, gpu_triangles, gpu_materials)
     }
 
 }
