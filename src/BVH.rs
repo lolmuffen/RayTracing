@@ -1,5 +1,3 @@
-use rand::rand_core::utils;
-
 use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
 use crate::utils::{Global, get_GLOBAL};
