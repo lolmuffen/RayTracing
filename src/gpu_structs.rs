@@ -17,6 +17,8 @@
 //  4 = Emissive
 //  5 = Specular
 
+use bytemuck::{Pod, Zeroable};
+
 #[repr(C)]
 pub struct GpuMaterial {
     pub color:                [f32; 3],
@@ -78,4 +80,40 @@ pub struct GpuBvhNode {
     pub shape_count:      u32,            // 0 = internal node, >0 = leaf
     pub first_shape:      u32,            // index into bvh_shape_ids array
     pub _pad:             [u32; 2],       // pad to 48 bytes total (3 × 16)
+}
+
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+pub struct CameraUniform {
+    pub origin:               [f32; 3],
+    pub focal_length:         f32,
+
+    pub pixel_upper_left:     [f32; 3],
+    pub focus_distance:       f32,
+
+    pub delta_u:              [f32; 3],
+    pub aperture_radius:      f32,
+
+    pub delta_v:              [f32; 3],
+    pub _pad0:                f32,
+
+    pub right:                [f32; 3],
+    pub _pad1:                f32,
+
+    pub up:                   [f32; 3],
+    pub _pad2:                f32,
+
+    pub sun_direction:        [f32; 3],
+    pub _pad3:                f32,
+
+    pub width:                u32,
+    pub height:               u32,
+    pub samples_per_dispatch: u32,
+    pub total_samples:        u32,
+
+    pub max_depth:            u32,
+    pub _pad4:                u32,
+    pub _pad5:                u32,
+    pub _pad6:                u32,
 }
