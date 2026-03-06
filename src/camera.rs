@@ -197,45 +197,7 @@ impl Camera {
     }
 
     pub async fn gpu_render(&self) {
-        let (width, height) = self.resolution;
-        let pixel_count     = (width * height) as usize;
 
-         let instance = wgpu::Instance::default();
-
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::HighPerformance,
-                compatible_surface: None,
-                force_fallback_adapter: false,
-            })
-            .await
-            .expect("Failed to find a GPU adapter");
-
-        println!("Using adapter: {:?}", adapter.get_info().name);
-
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                    memory_hints: wgpu::MemoryHints::default(),
-                    ..Default::default()
-                },
-            )
-            .await
-            .expect("Failed to create device");
-
-        let global = get_GLOBAL();
-        let objects = global.get_objects().expect("Objects not set before render_gpu()");
-
-        let (gpu_spheres, gpu_triangles, gpu_materials) = Self::pack_scene(objects);
-        let (bvh_raw_ids, bvh_nodes)                   = global.get_scene().flatten();
-
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label:  Some("PathTracer"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../path_tracer.wgsl").into()),
-        });
         todo!();
     }
 
