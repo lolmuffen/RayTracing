@@ -6,6 +6,7 @@ use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use bytemuck::Pod;
 use minifb::{Key, Window, WindowOptions};
+use wgpu::BufferDescriptor;
 use crate::utils::{Interval, get_GLOBAL};
 use rayon::prelude::*;
 
@@ -249,7 +250,10 @@ impl Camera {
             data: &[T],
             label: &str,
         ) -> wgpu::Buffer {
-            device.create_buffer(&wgpu::util::BufferDescriptor {}
+            device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                
+            }
 
             )
         }
