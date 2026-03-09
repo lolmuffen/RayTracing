@@ -5,7 +5,7 @@ use crate::vector::Vec3;
 use crate::intersection::{Hit, Intersection};
 use crate::material::Material;
 use crate::sphere::Sphere;
-use crate::gpu_structs::{GpuSphere, GpuTriangle};
+
 
 pub enum Shape {
     Sphere {sphere: Sphere},
@@ -143,47 +143,6 @@ impl Shape {
         match self {
             Self::Sphere { sphere } => {sphere.material},
             Self::Triangle { tri } => {tri.material},
-        }
-    }
-    
-    // -------------------------------------------------------------------------
-    // GPU serialisation
-    // -------------------------------------------------------------------------
-
-    /// Flatten a `Sphere` shape into a [`GpuSphere`].
-    ///
-    /// `material_id` is the index of the material inside whatever flat
-    /// `GpuMaterial` array you upload to the GPU — the caller is responsible
-    /// for resolving that mapping before calling this method.
-    ///
-    /// Returns `None` if called on a non-sphere variant.
-    pub fn to_gpu_sphere(&self, material_id: u32) -> Option<GpuSphere> {
-        if let Shape::Sphere { sphere } = self {
-            Some(GpuSphere {
-                center: sphere.position.to_array(),
-                radius: sphere.radius,
-                material_id,
-                _pad: [0u32; 3],
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Flatten a `Triangle` shape into a [`GpuTriangle`].
-    ///
-    /// Returns `None` if called on a non-triangle variant.
-    pub fn to_gpu_triangle(&self, material_id: u32) -> Option<GpuTriangle> {
-        if let Shape::Triangle { tri } = self {
-            Some(GpuTriangle {
-                p1: tri.p1.to_array(), _p1: 0.0,
-                p2: tri.p2.to_array(), _p2: 0.0,
-                p3: tri.p3.to_array(), _p3: 0.0,
-                normal: tri.normal.to_array(),
-                material_id,
-            })
-        } else {
-            None
         }
     }
 

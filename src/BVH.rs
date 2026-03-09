@@ -2,7 +2,6 @@ use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
 use crate::utils::{Global, get_GLOBAL};
 use crate::vector::Vec3;
-use crate::gpu_structs::GpuBvhNode;
 
 pub struct sceneBVH {
     pub ID: u8, // 0 for root, 1 for left child, 2 for right child
@@ -186,58 +185,6 @@ impl sceneBVH {
         }
     }
 
-    pub fn flatten(&self) -> (Vec<u32>, Vec<GpuBvhNode>) {
-        let mut nodes: Vec<GpuBvhNode> = Vec::new();
-        let mut object_ids: Vec<u32> = Vec::new();
-        
-        self.flatten_recursive(&mut nodes, &mut object_ids);
-
-        return (object_ids, nodes)
-    }
-
-pub fn flatten_recursive(&self, nodes: &mut Vec<GpuBvhNode>, object_ids: &mut Vec<u32>) -> u32 {
-    // Reserve a slot for this node and remember its index
-    let my_index = nodes.len() as u32;
-    nodes.push(GpuBvhNode {
-        bounding_box_min: self.bounding_box.min.to_array(),
-        bounding_box_max: self.bounding_box.max.to_array(),
-        left_child: 0,
-        right_child: 0,
-        shape_count: 0,
-        first_shape: 0,
-        _pad: [0u32; 2],
-    });
-
-    if let Some(ids) = &self.shape_ids {
-        // Leaf node: write shape IDs into the flat object_ids list
-        let first_shape = object_ids.len() as u32;
-        let shape_count = ids.len() as u32;
-        object_ids.extend_from_slice(ids);
-
-        nodes[my_index as usize].shape_count = shape_count;
-        nodes[my_index as usize].first_shape = first_shape;
-        // left_child/right_child are unused for leaves — leave as 0
-    } else {
-        // Internal node: recurse into children and record their indices
-        let left_index = if let Some(left) = &self.left_child {
-            left.flatten_recursive(nodes, object_ids)
-        } else {
-            0
-        };
-
-        let right_index = if let Some(right) = &self.right_child {
-            right.flatten_recursive(nodes, object_ids)
-        } else {
-            0
-        };
-
-        nodes[my_index as usize].left_child = left_index;
-        nodes[my_index as usize].right_child = right_index;
-        // shape_count stays 0 — signals to the shader this is an internal node
-    }
-
-    my_index
-}
 
 }
 
@@ -264,24 +211,12 @@ impl BoundingBox {
         if let Some(shape) = get_GLOBAL().get_object_by_id(new_shape_id) {
             let shape_min = shape.get_min_bounds();
             let shape_max = shape.get_max_bounds();
-            if self.min.x < shape_min.x {
-                self.min.x = shape_min.x;
-            }
-            if self.min.y < shape_min.y {
-                self.min.y = shape_min.y;
-            }
-            if self.min.z < shape_min.z {
-                self.min.z = shape_min.z;
-            }
-            if self.max.x > shape_max.x {
-                self.max.x = shape_max.x;
-            }
-            if self.max.y > shape_max.y {
-                self.max.y = shape_max.y;
-            }
-            if self.max.z > shape_max.z {
-                self.max.z = shape_max.z;
-            }
+            if self.min.x > shape_min.x { self.min.x = shape_min.x; }
+            if self.min.y > shape_min.y { self.min.y = shape_min.y; }
+            if self.min.z > shape_min.z { self.min.z = shape_min.z; }
+            if self.max.x < shape_max.x { self.max.x = shape_max.x; }
+            if self.max.y < shape_max.y { self.max.y = shape_max.y; }
+            if self.max.z < shape_max.z { self.max.z = shape_max.z; }
         }
     }
 

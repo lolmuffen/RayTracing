@@ -8,7 +8,6 @@ mod shape;
 mod BVH;
 mod camera;
 mod triangle;
-mod gpu_structs;
 
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
@@ -73,7 +72,7 @@ fn main() {
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
     let fov = 120;                        // Wide field of view for dramatic perspective
-    let samples_per_pixel: u32 = 2;          // Anti-aliasing quality (higher = smoother)
+    let samples_per_pixel: u32 = 3;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 8;                  // Maximum light bounces (higher = more accurate GI)
 
     // Depth of field (distance focusing) parameters
