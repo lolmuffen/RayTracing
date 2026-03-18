@@ -152,6 +152,7 @@ impl Global {
     }
 
     pub fn next_object_id(&self) -> u32 {
+        println!("consumed id {:?}", self.global_object_id);
         self.global_object_id.fetch_add(1, Ordering::Relaxed) + 1
     }
 
