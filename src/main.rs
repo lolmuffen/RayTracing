@@ -8,7 +8,10 @@ mod shape;
 mod BVH;
 mod camera;
 mod triangle;
+mod triangle_bvh;
+mod objectloader;
 
+use crate::triangle_bvh::TriangleBVH;
 use crate::vector::Vec3;
 use crate::camera::{Camera, Color};
 use crate::utils::{Global, get_GLOBAL};
@@ -53,15 +56,22 @@ fn main() {
     // Right sphere: Shows rougher metallic surface
     let sphere4 = Shape::sphere(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, material_right);
 
-    let triangle = Shape::triangle(Vec3::new(0.0, 2.0, -1.0), Vec3 { x: 1.0, y: 1.0, z: -1.0 }, Vec3 { x: -1.0, y: 1.0, z: -1.0 }, triangle_material);
+    // Load a mesh with a single material
+    let tris = objectloader::load_obj("knife chess piece.obj", Material::lambertian(1.0, Vec3::new(0.8, 0.8, 0.8)))
+        .expect("Failed to load OBJ");
 
+    println!("{}", tris.len());    
+
+    // Then build a TriangleBVH over it
+    let mesh_bvh = Shape::triangle_mesh(&tris, Vec3::new(0.0, 3.0, -3.0),  1.0);
+    
     let light = Shape::sphere(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 
     // =============================================================================
     // Scene Assembly
     // =============================================================================
     // Add all objects to the scene container for intersection testing
-    let objects: Vec<Shape> = vec![sphere1, sphere2, sphere3, sphere4, triangle, light];
+    let objects: Vec<Shape> = vec![sphere1, sphere2, sphere3, sphere4, mesh_bvh, light];
 
 
     // Set global state with our scene objects and lights for access during rendering
@@ -83,7 +93,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(0.0, 0.0, 1.0), Vec3::new(0.0, 1.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(0.0, 0.0, 1.0), Vec3::new(0.0, 4.0, -3.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution

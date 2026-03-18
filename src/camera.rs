@@ -200,10 +200,14 @@ impl Camera {
 
         for _bounce in 0..self.depth {
             if let Some(hit_record) = scene.traverse(&current_ray, global) {
-                let material = global
-                    .get_object_by_id(hit_record.object_id.unwrap())
-                    .unwrap()
-                    .get_material();
+                let material = hit_record.hitdata.as_ref()
+                    .and_then(|h| h.material)
+                    .unwrap_or_else(|| {
+                        global
+                            .get_object_by_id(hit_record.object_id.unwrap())
+                            .unwrap()
+                            .get_material()
+                    });
 
                 if material.is_emissive() {
                     // Check emissive BEFORE scattering, return current throughput * emission

@@ -2,6 +2,7 @@ use crate::material::{Material};
 use crate::utils::get_GLOBAL;
 use crate::vector::Vec3;
 
+#[derive(Clone)]
 pub struct Triangle {
     pub p1: Vec3,
     pub p2: Vec3,
@@ -18,4 +19,9 @@ impl Triangle {
         let normal = e1.cross(e2).normalize();
         return Triangle { p1, p2, p3, normal, material: mat, id: get_GLOBAL().next_object_id() }
     }
+
+    pub fn new_with_normal(p1: Vec3, p2: Vec3, p3: Vec3, normal: Vec3, mat: Material) -> Self {
+        Triangle { p1, p2, p3, normal, material: mat, id: get_GLOBAL().next_object_id() }
+    }
+    
 }

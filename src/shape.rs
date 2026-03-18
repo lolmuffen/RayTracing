@@ -1,4 +1,5 @@
 use crate::ray::Ray;
+use crate::triangle_bvh::TriangleBVH;
 use crate::utils::get_GLOBAL;
 use crate::triangle::Triangle;
 use crate::vector::Vec3;
@@ -9,7 +10,8 @@ use crate::sphere::Sphere;
 
 pub enum Shape {
     Sphere {sphere: Sphere},
-    Triangle{tri: Triangle}
+    Triangle{tri: Triangle},
+    TriangleMesh{tri_mesh: TriangleBVH}
 }
 
 impl Shape {
@@ -28,6 +30,10 @@ impl Shape {
         let e2 = p3 - p1;
         let normal = e1.cross(e2).normalize();
         Shape::Triangle { tri: Triangle { p1, p2, p3, normal, material: mat, id: get_GLOBAL().next_object_id() } }
+    }
+
+    pub fn triangle_mesh(tris: &[Triangle], position: Vec3, scale: f32) -> Shape {
+        Shape::TriangleMesh { tri_mesh: TriangleBVH::new_transformed(tris, position, scale)}
     }
 
 
@@ -96,6 +102,13 @@ impl Shape {
                                                     return Intersection { hit: false, hitdata: None, object_id: None };
                                                 }
             }
+
+            Shape::TriangleMesh { tri_mesh } => {
+                                                                match tri_mesh.traverse(ray) {
+                                                                    Some(intersection) => intersection,
+                                                                    None => Intersection { hit: false, hitdata: None, object_id: None },
+                                                                }
+                                                            }  
         }
     }
 
@@ -104,6 +117,7 @@ impl Shape {
         match self {
             Self::Sphere { sphere } => {sphere.ID},
             Self::Triangle { tri } => {tri.id},
+            Self::TriangleMesh { tri_mesh } => {tri_mesh.ID}
         }
     }
 
@@ -119,8 +133,15 @@ impl Shape {
             Self::Triangle { tri } => {let min_x = tri.p1.x.min(tri.p2.x).min(tri.p3.x);
                                                  let min_y = tri.p1.y.min(tri.p2.y).min(tri.p3.y);
                                                  let min_z = tri.p1.z.min(tri.p2.z).min(tri.p3.z);
-                                                 return Vec3::new(min_x, min_y, min_z)},
+                                                 Vec3::new(min_x, min_y, min_z)
+        },
+            
+            Self::TriangleMesh { tri_mesh } => tri_mesh.world_bounding_box().min,
+
+
         }
+        
+
     }
 
     pub fn get_max_bounds(&self) -> Vec3 {
@@ -135,14 +156,18 @@ impl Shape {
                                                 let max_y = tri.p1.y.max(tri.p2.y).max(tri.p3.y);
                                                 let max_z = tri.p1.z.max(tri.p2.z).max(tri.p3.z);
                                                 return Vec3::new(max_x, max_y, max_z)
-                                                },
+        },
+            Self::TriangleMesh { tri_mesh } => tri_mesh.world_bounding_box().max,
         }
+
+
     }
 
     pub fn get_material(&self) -> Material {
         match self {
             Self::Sphere { sphere } => {sphere.material},
             Self::Triangle { tri } => {tri.material},
+            Self::TriangleMesh { tri_mesh } => {panic!("get_material() called on TriangleMesh — use hit.material instead")}
         }
     }
 

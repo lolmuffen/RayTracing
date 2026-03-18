@@ -6,12 +6,49 @@
 //! and interval arithmetic for robust intersection testing.
 
 use rand::RngExt;
-use crate::shape;
 use crate::{shape::Shape, vector::Vec3};
 use std::sync::{OnceLock};
 use std::sync::atomic::{AtomicU32, Ordering};
 use crate::BVH::sceneBVH;
+use crate::triangle::Triangle;
+use crate::ray::Ray;
 
+
+// ---------------------------------------------------------------------------
+// Möller–Trumbore ray/triangle intersection
+// ---------------------------------------------------------------------------
+
+pub fn moller_trumbore(ray: &Ray, tri: &Triangle) -> Option<(f32, Vec3)> {
+    let e1 = tri.p2 - tri.p1;
+    let e2 = tri.p3 - tri.p1;
+
+    let h   = ray.direction.cross(e2);
+    let det = e1.dot(h);
+
+    if det > -f32::EPSILON && det < f32::EPSILON {
+        return None; // Ray is parallel to triangle
+    }
+
+    let inv_det = 1.0 / det;
+    let s = ray.origin - tri.p1;
+    let u = inv_det * s.dot(h);
+    if u < 0.0 || u > 1.0 {
+        return None;
+    }
+
+    let q = s.cross(e1);
+    let v = inv_det * ray.direction.dot(q);
+    if v < 0.0 || u + v > 1.0 {
+        return None;
+    }
+
+    let t = inv_det * e2.dot(q);
+    if t > f32::EPSILON {
+        Some((t, ray.origin + ray.direction * t))
+    } else {
+        None
+    }
+}
 
 // =============================================================================
 // Random Number Generation
