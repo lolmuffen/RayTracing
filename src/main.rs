@@ -57,13 +57,12 @@ fn main() {
     let sphere4 = Shape::sphere(Vec3 { x: 1.0, y: 0.0, z: -1.0 }, 0.5, material_right);
 
     // Load a mesh with a single material
-    let tris = objectloader::load_obj("knife chess piece.obj", Material::lambertian(1.0, Vec3::new(0.8, 0.8, 0.8)))
+    let tris = objectloader::load_obj("knife chess piece.obj", material_left)
         .expect("Failed to load OBJ");
 
-    println!("{}", tris.len());    
 
     // Then build a TriangleBVH over it
-    let mesh_bvh = Shape::triangle_mesh(&tris, Vec3::new(0.0, 3.0, -3.0),  1.0);
+    let mesh_bvh = Shape::triangle_mesh(&tris, Vec3::new(0.0, 0.0, -0.0),  0.4);
     
     let light = Shape::sphere(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 
@@ -93,7 +92,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(0.0, 0.0, 1.0), Vec3::new(0.0, 4.0, -3.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(1.0, 0.0, 1.0), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution

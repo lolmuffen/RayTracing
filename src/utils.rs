@@ -163,11 +163,17 @@ impl Global {
         self.global_object_list.get()
     }
 
-    /// O(1) lookup: IDs are 1-based, so `id - 1` is the direct index.
-    #[inline(always)]
+    /// Look up a shape by its registered ID.
+    /// IDs are **not** guaranteed to equal the Vec index (mesh triangles consume
+    /// IDs during construction before the Shape list is built), so we do a
+    /// linear scan.  The scene object list is tiny (typically < 100 entries) so
+    /// this is negligible compared to ray-intersection work.
+    #[inline]
     pub fn get_object_by_id(&self, id: u32) -> Option<&Shape> {
-        let idx = id.checked_sub(1)? as usize;
-        self.global_object_list.get()?.get(idx)
+        self.global_object_list
+            .get()?
+            .iter()
+            .find(|s| s.get_id() == id)
     }
 
     #[inline(always)]

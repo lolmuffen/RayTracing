@@ -26,10 +26,11 @@ impl Shape {
     }
 
     pub fn triangle(p1: Vec3, p2: Vec3, p3: Vec3, mat: Material) -> Shape {
+        let id = get_GLOBAL().next_object_id();
         let e1 = p2 - p1;
         let e2 = p3 - p1;
         let normal = e1.cross(e2).normalize();
-        Shape::Triangle { tri: Triangle { p1, p2, p3, normal, material: mat, id: get_GLOBAL().next_object_id() } }
+        Shape::Triangle { tri: Triangle { p1, p2, p3, normal, material: mat, id } }
     }
 
     pub fn triangle_mesh(tris: &[Triangle], position: Vec3, scale: f32) -> Shape {

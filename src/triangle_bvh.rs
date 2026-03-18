@@ -3,7 +3,7 @@ use crate::intersection::{Hit, Intersection};
 use crate::ray::Ray;
 use crate::triangle::Triangle;
 use crate::vector::Vec3;
-use crate::utils::moller_trumbore;
+use crate::utils::{moller_trumbore, get_GLOBAL};
 
 // =============================================================================
 // Transform
@@ -84,16 +84,16 @@ impl TriangleBVH {
 
     /// Build a BVH over `triangles` and attach a world-space position and uniform scale.
     ///
-    /// The triangles are treated as being defined in local space.  `position` is
-    /// the world-space offset of the mesh origin and `scale` is a uniform scale
-    /// applied before the translation.
-    ///
-    /// ```rust
-    /// let mesh = TriangleBVH::new_transformed(&tris, Vec3::new(0.0, 0.5, -2.0), 0.3);
-    /// ```
+    /// A **single** global object ID is claimed here for the root node.  Internal
+    /// child nodes and leaf triangles are not scene objects and use ID 0.
     pub fn new_transformed(triangles: &[Triangle], position: Vec3, scale: f32) -> Self {
+        // Claim the one real scene-object ID *before* building the tree.
+        // Triangle::new / new_with_normal no longer call next_object_id(), so
+        // nothing inside build_recursive will consume IDs.
+        let root_id = get_GLOBAL().next_object_id();
         let indices: Vec<usize> = (0..triangles.len()).collect();
         let mut root = TriangleBVH::build_recursive(triangles, &indices, 0, 0);
+        root.ID = root_id;
         root.transform = Transform::new(position, scale);
         root
     }

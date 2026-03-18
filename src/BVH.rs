@@ -117,7 +117,10 @@ impl sceneBVH {
                                     None => true,
                                 };
                                 if is_better {
-                                    best_hit = Some(Hit::new(h.distance, h.hit_point, h.normal));
+                                    // Preserve h directly — Hit::new would discard
+                                    // the material that TriangleBVH stored on the hit,
+                                    // causing a panic when camera tries to shade the mesh.
+                                    best_hit = Some(h);
                                     best_obj_id = inter.object_id;
                                 }
                             }
