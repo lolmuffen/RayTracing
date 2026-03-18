@@ -5,7 +5,7 @@ use crate::utils::{Global, get_GLOBAL};
 use crate::vector::Vec3;
 
 pub struct sceneBVH {
-    pub ID: u8, // 0 for root, 1 for left child, 2 for right child
+    pub ID: u32, // 0 for root, 1 for left child, 2 for right child
     pub bounding_box: BoundingBox,
     pub left_child: Option<Box<sceneBVH>>,
     pub right_child: Option<Box<sceneBVH>>,
@@ -22,7 +22,7 @@ impl sceneBVH {
     }
 
     /// Recursively build sceneBVH tree by splitting shapes in half
-    fn build_recursive(shape_ids: Vec<u32>, depth: usize, child_ID: u8) -> Self {
+    fn build_recursive(shape_ids: Vec<u32>, depth: usize, child_ID: u32) -> Self {
         // Calculate bounding box for current set of shapes
         let mut bounding_box = BoundingBox::new_empty();
 
@@ -117,9 +117,6 @@ impl sceneBVH {
                                     None => true,
                                 };
                                 if is_better {
-                                    // Preserve h directly — Hit::new would discard
-                                    // the material that TriangleBVH stored on the hit,
-                                    // causing a panic when camera tries to shade the mesh.
                                     best_hit = Some(h);
                                     best_obj_id = inter.object_id;
                                 }
