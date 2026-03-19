@@ -6,16 +6,17 @@ pub struct Hit {
     pub distance: f32,
     pub hit_point: Vec3,
     pub normal: Vec3,
+    pub front_face: bool,
     pub material: Option<Material>,
 }
 
 impl Hit {
-    pub fn new(distance: f32, hit_point: Vec3, normal: Vec3) -> Hit {
-        Hit { distance, hit_point, normal, material: None }
+    pub fn new(distance: f32, hit_point: Vec3, normal: Vec3, front_face: bool,) -> Hit {
+        Hit { distance, hit_point, normal, front_face, material: None }
     }
 
-    pub fn new_with_material(distance: f32, hit_point: Vec3, normal: Vec3, material: Material) -> Hit {
-        Hit { distance, hit_point, normal, material: Some(material) }
+    pub fn new_with_material(distance: f32, hit_point: Vec3, normal: Vec3, front_face: bool, material: Material) -> Hit {
+        Hit { distance, hit_point, normal, front_face, material: Some(material) }
     }
 }
 

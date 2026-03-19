@@ -59,7 +59,8 @@ impl Shape {
                                         let hit_point = ray.origin + ray.direction * t;
 
                                         let normal = (hit_point - sphere.position).normalize();
-                                        let hit = Hit::new(t, hit_point, normal);
+                                        let front_face = ray.direction.dot(normal) < 0.0;
+                                        let hit = Hit::new(t, hit_point, normal, front_face);
 
                                         Intersection::new(true, Some(hit), Some(sphere.ID))
                                     } else {
@@ -97,7 +98,9 @@ impl Shape {
 
                                                 if t > f32::EPSILON { // ray intersection
                                                     let intersection_point = ray.origin + ray.direction * t;
-                                                    return Intersection { hit: true, hitdata: Some(Hit::new(t, intersection_point, tri.normal)), object_id: Some(tri.id) };
+                                                    let front_face = ray.direction.dot(tri.normal) < 0.0;
+                                                    let normal = if front_face { tri.normal } else { -tri.normal };
+                                                    return Intersection { hit: true, hitdata: Some(Hit::new(t, intersection_point, normal, front_face)), object_id: Some(tri.id) };
                                                 }
                                                 else { // This means that there is a line intersection but not a ray intersection.
                                                     return Intersection { hit: false, hitdata: None, object_id: None };

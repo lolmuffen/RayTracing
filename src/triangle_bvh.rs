@@ -211,7 +211,9 @@ impl TriangleBVH {
                             None => true,
                         };
                         if is_better {
-                            best_hit = Some(Hit::new_with_material(t, hit_point, tri.normal, tri.material));
+                            let front_face = ray.direction.dot(tri.normal) < 0.0;
+                            let normal = if front_face { tri.normal } else { -tri.normal };
+                            best_hit = Some(Hit::new_with_material(t, hit_point, normal, front_face, tri.material));
                         }
                     }
                 }
