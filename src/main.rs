@@ -91,7 +91,7 @@ fn main() {
     let sun_direction = Vec3::new(1.0, 2.0, -1.0);
 
 
-    let cam = Camera::new(Vec3::new(0.5, 0.0, 0.5), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
+    let cam = Camera::new(Vec3::new(0.5, 0.0, -4.5), Vec3::new(0.0, 0.0, -1.0), (width as u32, (width as f32 / aspect_ratio) as u32), fov, samples_per_pixel, max_depth as u32, focus_distance, aperture, sun_direction);
 
     // =============================================================================
     // Rendering Execution
