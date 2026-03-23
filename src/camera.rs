@@ -118,6 +118,11 @@ impl Camera {
         }
     }
 
+    pub fn update_position(&mut self, position: Vec3, direction: Vec3) {
+        self.position = position;
+        self.direction = direction;
+    }
+
     /// Render: opens a window and generates rays for each pixel using multi-threaded 2D pixel processing.
     /// Each thread can safely write to its own pixel using 2D coordinates (x, y).
     pub fn render(&self) {
