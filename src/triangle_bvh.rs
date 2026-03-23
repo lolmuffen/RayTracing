@@ -244,16 +244,16 @@ impl TriangleBVH {
 
 fn transform_intersection(mut inter: Intersection, t: &Transform) -> Intersection {
     if let Some(ref mut hit) = inter.hitdata {
-        // The hit point stored by moller_trumbore is in local space; bring it back.
         hit.hit_point = t.transform_point(hit.hit_point);
-        // Normals transform inversely to positions (transpose of inverse).
-        // For a uniform scale this simply renormalises after dividing by scale.
         hit.normal = t.transform_normal(hit.normal);
-
-        // The parametric distance `t` returned by Möller–Trumbore was computed
-        // against the *scaled* local ray direction, so it needs to be corrected
-        // to match world-space distance:  t_world = t_local * scale.
-        hit.distance *= t.scale;
+        
+        // The local ray direction was divided by scale, so the parametric t
+        // was computed against a direction |d|/scale, meaning t_local corresponds
+        // to a world distance of t_local * (|local_dir| / |world_dir|)
+        // For uniform scale: t_world = t_local (NOT t_local * scale)
+        // The direction shrinks by 1/scale, so t grows by scale — they cancel out.
+        // Remove the scale multiplication entirely:
+        // hit.distance *= t.scale;  <-- DELETE THIS LINE
     }
     inter
 }
