@@ -77,24 +77,20 @@ impl Camera {
         let right = world_up.cross(forward).normalize();
         let up = forward.cross(right).normalize();
         
-        // Calculate FOV in radians
         let fov_rad = (fov as f32).to_radians();
         let h = (fov_rad / 2.0).tan();
         let viewport_height = 2.0 * h;
         let viewport_width = viewport_height * (width as f32 / height as f32);
         
-        // Calculate pixel delta vectors
         let viewport_u = right * viewport_width;
         let viewport_v = -up * viewport_height;
         
         let delta_u = viewport_u / width as f32;
         let delta_v = viewport_v / height as f32;
         
-        // Calculate the upper left corner of the pixel grid
         let viewport_upper_left = center - (forward * focal_length) - (viewport_u / 2.0) - (viewport_v / 2.0);
         let origin_pixel_upper_left = viewport_upper_left + (delta_u * 0.5) + (delta_v * 0.5);
 
-        // Aperture radius is half the aperture diameter
         let aperture_radius = aperture / 2.0;
         
         Camera {
@@ -121,11 +117,39 @@ impl Camera {
     pub fn update_position(&mut self, position: Vec3, direction: Vec3) {
         self.position = position;
         self.direction = direction;
+        self.center = position;
+
+        let (width, height) = self.resolution;
+
+        self.focal_length = (position - direction).length();
+
+        let world_up = Vec3::new(0.0, 1.0, 0.0);
+
+        self.forward = (position - direction).normalize();
+        self.right = world_up.cross(self.forward).normalize();
+        self.up = self.forward.cross(self.right).normalize();
+
+        let fov_rad = (self.fov as f32).to_radians();
+        let h = (fov_rad / 2.0).tan();
+        let viewport_height = 2.0 * h;
+        let viewport_width = viewport_height * (width as f32 / height as f32);
+
+        let viewport_u = self.right * viewport_width;
+        let viewport_v = -self.up * viewport_height;
+
+        self.delta_u = viewport_u / width as f32;
+        self.delta_v = viewport_v / height as f32;
+
+        let viewport_upper_left = self.center
+            - (self.forward * self.focal_length)
+            - (viewport_u / 2.0)
+            - (viewport_v / 2.0);
+
+        self.origin_pixel_upper_left =
+            viewport_upper_left + (self.delta_u * 0.5) + (self.delta_v * 0.5);
     }
 
-    /// Render: opens a window and generates rays for each pixel using multi-threaded 2D pixel processing.
-    /// Each thread can safely write to its own pixel using 2D coordinates (x, y).
-    pub fn render(&self) {
+    pub fn render(&mut self) {
         let (width, height) = (self.resolution.0 as usize, self.resolution.1 as usize);
         let pixel_count = width * height;
 
@@ -136,24 +160,78 @@ impl Camera {
             WindowOptions::default(),
         ).expect("Unable to open window");
 
-        // Each pixel accumulates raw (linear) color across all frames
         let mut accumulation_buffer: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
         let mut pixel_buffer: Vec<u32> = vec![0u32; pixel_count];
         let mut new_samples: Vec<Vec3> = vec![Vec3::new(0.0, 0.0, 0.0); pixel_count];
 
-        let mut total_samples: u32 = 0;        // total samples accumulated so far
-        let samples_this_frame = self.samples_per_pixel; // how many new samples to add each frame
+        let mut total_samples: u32 = 0;
+        let samples_this_frame = self.samples_per_pixel;
         let mut frame_count: u32 = 0;
         let frame_count_before_print = 10;
         let mut frame_time_average = Duration::new(0, 0);
+        let move_speed: f32 = 0.1;
 
         while window.is_open() && !window.is_key_down(Key::Escape) {
+
+            // --- Input handling ---
+            let mut frame_dirty = false;
+
+            if window.is_key_down(Key::W) {
+                self.position = self.position - self.forward * move_speed;
+                frame_dirty = true;
+            }
+            if window.is_key_down(Key::S) {
+                self.position = self.position + self.forward * move_speed;
+                frame_dirty = true;
+            }
+            if window.is_key_down(Key::A) {
+                self.position = self.position - self.right * move_speed;
+                frame_dirty = true;
+            }
+            if window.is_key_down(Key::D) {
+                self.position = self.position + self.right * move_speed;
+                frame_dirty = true;
+            }
+            if window.is_key_down(Key::Space) {
+                self.position = self.position + self.up * move_speed;
+                frame_dirty = true;
+            }
+            if window.is_key_down(Key::LeftShift) {
+                self.position = self.position - self.up * move_speed;
+                frame_dirty = true;
+            }
+
+            if frame_dirty {
+                // Keep the look-at point fixed relative to position so the
+                // camera translates without rotating.
+                self.direction = self.position - self.forward * self.focal_length;
+                self.update_position(self.position, self.direction);
+
+                // Reset accumulation so the moved view starts fresh.
+                accumulation_buffer.fill(Vec3::new(0.0, 0.0, 0.0));
+                pixel_buffer.fill(0);
+                total_samples = 0;
+                frame_count = 0;
+                frame_time_average = Duration::new(0, 0);
+            }
+
+            // --- Snapshot immutable camera state for the parallel render ---
+            // Rayon closures require Send + Sync; taking copies of the fields
+            // we need lets us borrow self immutably inside the closure while
+            // the mutable borrow from the key-handling above is already done.
+            let origin_pixel_upper_left = self.origin_pixel_upper_left;
+            let delta_u = self.delta_u;
+            let delta_v = self.delta_v;
+            let center = self.center;
+            let right = self.right;
+            let up = self.up;
+            let aperture_radius = self.aperture_radius;
+            let focus_distance = self.focus_distance;
+            let depth = self.depth;
+            let sun_direction = self.sun_direction;
+
             frame_count += 1;
             let frame_start = Instant::now();
-
-            // --- Step 1: accumulate new samples into a per-row delta buffer ---
-            // We collect new contributions in a separate vec so rayon can work
-            // without touching accumulation_buffer (which isn't Send across chunks easily)
 
             new_samples
                 .par_chunks_mut(width)
@@ -162,8 +240,12 @@ impl Camera {
                     for x in 0..width {
                         let mut accumulated = Color::new(0.0, 0.0, 0.0);
                         for _ in 0..samples_this_frame {
-                            let ray = self.get_sample_ray(x as u32, y as u32);
-                            accumulated += self.path_pixel_color(ray);
+                            let ray = Camera::get_sample_ray_raw(
+                                x as u32, y as u32,
+                                origin_pixel_upper_left, delta_u, delta_v,
+                                center, right, up, aperture_radius, focus_distance,
+                            );
+                            accumulated += Camera::path_pixel_color_raw(ray, depth, sun_direction);
                         }
                         row[x] = accumulated;
                     }
@@ -180,7 +262,6 @@ impl Camera {
                     *acc += *new;
                     *pixel = Color::color_to_hex(Color::gamma_correct_color(&(*acc * inv_total)));
                 });
-            
 
             window.update_with_buffer(&pixel_buffer, width, height).ok();
 
@@ -198,12 +279,41 @@ impl Camera {
         }
     }
 
+    // Free function version used inside rayon closure (no &self borrow needed).
+    fn get_sample_ray_raw(
+        i: u32, j: u32,
+        origin_pixel_upper_left: Vec3,
+        delta_u: Vec3,
+        delta_v: Vec3,
+        center: Vec3,
+        right: Vec3,
+        up: Vec3,
+        aperture_radius: f32,
+        focus_distance: f32,
+    ) -> Ray {
+        let offset = sample_unit_square();
 
-    pub fn path_pixel_color(&self, mut current_ray: Ray) -> Color {
+        let pixel_sample = origin_pixel_upper_left
+            + (delta_u * (i as f32 + offset.x))
+            + (delta_v * (j as f32 + offset.y));
+
+        let aperture_sample = Vec3::random_vec_on_circle();
+        let aperture_offset = (right * aperture_sample.x + up * aperture_sample.y) * aperture_radius;
+        let ray_origin = center + aperture_offset;
+
+        let ray_direction_to_focal = (pixel_sample - center).normalize();
+        let focal_plane_point = center + ray_direction_to_focal * focus_distance;
+        let final_direction = focal_plane_point - ray_origin;
+
+        Ray::new(ray_origin, final_direction, Color::new(1.0, 1.0, 1.0))
+    }
+
+    // Free function version used inside rayon closure (no &self borrow needed).
+    fn path_pixel_color_raw(mut current_ray: Ray, depth: u32, sun_direction: Vec3) -> Color {
         let global = get_GLOBAL();
         let scene = global.get_scene();
 
-        for _bounce in 0..self.depth {
+        for _bounce in 0..depth {
             if let Some(hit_record) = scene.traverse(&current_ray, global) {
                 let material = hit_record.hitdata.as_ref()
                     .and_then(|h| h.material)
@@ -215,60 +325,25 @@ impl Camera {
                     });
 
                 if material.is_emissive() {
-                    // Check emissive BEFORE scattering, return current throughput * emission
                     let scattered = material.scatter(&current_ray, &hit_record);
                     return scattered.color;
                 }
 
                 current_ray = material.scatter(&current_ray, &hit_record);
-                
-            } 
-            
-            else {
-
-                return current_ray.color * self.background_color(&current_ray);
-                
+            } else {
+                return current_ray.color * Camera::background_color_raw(&current_ray, sun_direction);
             }
         }
 
-        Color::zero()  // Ray exceeded depth limit — return black, not accumulated color
-    } 
+        Color::zero()
+    }
 
-    fn background_color(&self, ray: &Ray) -> Color {
+    fn background_color_raw(ray: &Ray, sun_direction: Vec3) -> Color {
         let unit_direction = ray.direction.normalize();
         let t = 0.5 * (unit_direction.y + 1.0);
         let sky_color = Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t;
-        
-        // Add sun glow to background
-        let sun_dot = unit_direction.dot(self.sun_direction).powf(10.0).max(0.0);
-        let sun_disk = 1.0 / ( 1.0 / (Color::new(1.0, 0.95, 0.7) * sun_dot.powf(20.0))) * 2.0;
-        
-        (sky_color + sun_disk ) / 2.0
+        let sun_dot = unit_direction.dot(sun_direction).powf(10.0).max(0.0);
+        let sun_disk = 1.0 / (1.0 / (Color::new(1.0, 0.95, 0.7) * sun_dot.powf(20.0))) * 2.0;
+        (sky_color + sun_disk) / 2.0
     }
-
-    pub fn get_sample_ray(&self, i: u32, j: u32) -> Ray {
-        let offset = sample_unit_square();
-
-        let pixel_sample = self.origin_pixel_upper_left
-            + (self.delta_u * (i as f32 + offset.x))
-            + (self.delta_v * (j as f32 + offset.y));
-
-        // Depth of field: generate a random point on the aperture disk
-        let aperture_sample = Vec3::random_vec_on_circle();
-        let aperture_offset = (self.right * aperture_sample.x + self.up * aperture_sample.y) * self.aperture_radius;
-
-        // The ray origin is offset from the camera center based on the aperture sample
-        let ray_origin = self.center + aperture_offset;
-
-        // Calculate the focal plane point: Cast a ray from center through pixel_sample at focus_distance
-        let ray_direction_to_focal = (pixel_sample - self.center).normalize();
-        let focal_plane_point = self.center + ray_direction_to_focal * self.focus_distance;
-
-        // The actual ray direction goes from the offset origin to the focal plane point
-        let final_direction = focal_plane_point - ray_origin;
-        let ray_color = Color::new(1.0, 1.0, 1.0); // Default white color for rays
-
-        Ray::new(ray_origin, final_direction, ray_color)
-    }
-
 }

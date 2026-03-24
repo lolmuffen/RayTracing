@@ -4,7 +4,7 @@
 //! for ray tracing including dot products, cross products, normalization,
 //! and random vector generation for Monte Carlo sampling.
 
-use crate::utils::{random_double, random_double_range};
+use crate::utils::{Axis, random_double, random_double_range};
 
 /// A 3D vector with x, y, z components.
 ///
@@ -169,6 +169,70 @@ impl Vec3 {
     #[inline(always)]
     pub fn to_array(&self) -> [f32; 3] {
         [self.x, self.y, self.z]
+    }
+
+    /// Rotate this vector by `angle` radians around the given cardinal axis.
+    ///
+    /// Uses a standard 3×3 rotation matrix — no heap allocation, fully inlined.
+    ///
+    /// ```rust
+    /// let v = Vec3::new(1.0, 0.0, 0.0);
+    /// let rotated = v.rotate(std::f32::consts::FRAC_PI_2, Axis::Z);
+    /// // ≈ (0, 1, 0)
+    /// ```
+    pub fn rotate(&self, angle: f32, axis: Axis) -> Vec3 {
+        let (sin, cos) = angle.sin_cos();
+        match axis {
+            // Rotation matrix around X:
+            // [ 1    0     0  ]
+            // [ 0   cos  -sin ]
+            // [ 0   sin   cos ]
+            Axis::X => Vec3::new(
+                self.x,
+                self.y * cos - self.z * sin,
+                self.y * sin + self.z * cos,
+            ),
+            // Rotation matrix around Y:
+            // [  cos  0  sin ]
+            // [   0   1   0  ]
+            // [ -sin  0  cos ]
+            Axis::Y => Vec3::new(
+                self.x * cos + self.z * sin,
+                self.y,
+                -self.x * sin + self.z * cos,
+            ),
+            // Rotation matrix around Z:
+            // [ cos  -sin  0 ]
+            // [ sin   cos  0 ]
+            // [  0     0   1 ]
+            Axis::Z => Vec3::new(
+                self.x * cos - self.y * sin,
+                self.x * sin + self.y * cos,
+                self.z,
+            ),
+        }
+    }
+
+    /// Rotate this vector by `angle` radians around an **arbitrary axis**
+    /// using Rodrigues' rotation formula:
+    ///
+    ///   v_rot = v·cos(θ) + (k × v)·sin(θ) + k·(k·v)·(1 − cos(θ))
+    ///
+    /// `axis_vec` does **not** need to be pre-normalized — this method
+    /// normalizes it internally.
+    ///
+    /// ```rust
+    /// // Tilt a direction 45° around the world Y axis
+    /// let dir = Vec3::new(0.0, 0.0, -1.0);
+    /// let tilted = dir.rotate_around(std::f32::consts::FRAC_PI_4, Vec3::new(0.0, 1.0, 0.0));
+    /// ```
+    pub fn rotate_around(&self, angle: f32, axis_vec: Vec3) -> Vec3 {
+        let k = axis_vec.normalize();           // unit axis
+        let (sin, cos) = angle.sin_cos();
+        let dot = k.dot(*self);
+
+        // Rodrigues: v·cos θ  +  (k × v)·sin θ  +  k·(k·v)·(1 − cos θ)
+        *self * cos + k.cross(*self) * sin + k * (dot * (1.0 - cos))
     }
 
 }

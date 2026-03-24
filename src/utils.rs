@@ -54,8 +54,6 @@ pub fn moller_trumbore(ray: &Ray, tri: &Triangle) -> Option<(f32, Vec3)> {
 // Random Number Generation
 // =============================================================================
 
-
-
 /// Generates a random floating-point number in the range [0, 1).
 pub fn random_double() -> f32 {
     let mut rng = rand::rng();
@@ -196,4 +194,14 @@ lazy_static::lazy_static! {
 
 pub fn get_GLOBAL() -> &'static Global {
     GLOBAL.get().expect("Global instance not initialized")
+}
+
+// =============================================================================
+// rotation axis utils
+// =============================================================================
+
+pub enum Axis {
+    X, 
+    Y,
+    Z,
 }
