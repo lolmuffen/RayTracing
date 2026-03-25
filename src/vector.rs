@@ -180,7 +180,8 @@ impl Vec3 {
     /// let rotated = v.rotate(std::f32::consts::FRAC_PI_2, Axis::Z);
     /// // ≈ (0, 1, 0)
     /// ```
-    pub fn rotate(&self, angle: f32, axis: Axis) -> Vec3 {
+    pub fn rotate(&self, angle: f32, position: Vec3, axis: Axis) -> Vec3 {
+        let pos = *self - position;
         let (sin, cos) = angle.sin_cos();
         match axis {
             // Rotation matrix around X:
@@ -188,28 +189,28 @@ impl Vec3 {
             // [ 0   cos  -sin ]
             // [ 0   sin   cos ]
             Axis::X => Vec3::new(
-                self.x,
-                self.y * cos - self.z * sin,
-                self.y * sin + self.z * cos,
-            ),
+                pos.x,
+                pos.y * cos - pos.z * sin,
+                pos.y * sin + pos.z * cos,
+            ) + pos,
             // Rotation matrix around Y:
             // [  cos  0  sin ]
             // [   0   1   0  ]
             // [ -sin  0  cos ]
             Axis::Y => Vec3::new(
-                self.x * cos + self.z * sin,
-                self.y,
-                -self.x * sin + self.z * cos,
-            ),
+                pos.x * cos + pos.z * sin,
+                pos.y,
+                -pos.x * sin + pos.z * cos,
+            ) + pos,
             // Rotation matrix around Z:
             // [ cos  -sin  0 ]
             // [ sin   cos  0 ]
             // [  0     0   1 ]
             Axis::Z => Vec3::new(
-                self.x * cos - self.y * sin,
-                self.x * sin + self.y * cos,
-                self.z,
-            ),
+                pos.x * cos - pos.y * sin,
+                pos.x * sin + pos.y * cos,
+                pos.z,
+            ) + pos,
         }
     }
 
