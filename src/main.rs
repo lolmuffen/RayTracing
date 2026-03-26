@@ -33,9 +33,6 @@ fn main() {
     // Right sphere: metallic with high roughness for brushed metal appearance
     let material_right = Material::glass(1.5, 2.0, Color::new(0.8, 0.6, 0.4));
 
-
-    let triangle_material = Material::lambertian(1.0, Vec3 { x: 1.0, y: 0.2, z: 0.2});
-
     // =============================================================================
     // Scene Geometry Setup
     // =============================================================================
@@ -61,7 +58,7 @@ fn main() {
 
 
     // Then build a TriangleBVH over it
-    let mesh_bvh = Shape::triangle_mesh(&tris, Vec3::new(0.0, 0.0, -0.0),  0.1);
+    let mesh_bvh = Shape::triangle_mesh(&tris, Vec3::new(0.0, 0.0, -0.0),  0.3);
     
     let light = Shape::sphere(Vec3 { x: 3.0, y: 5.0, z: -0.0 }, 1.0, Material::emissive(Color::new(4.0, 3.0, 2.0), 1.0));
 

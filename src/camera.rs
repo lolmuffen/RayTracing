@@ -205,6 +205,7 @@ impl Camera {
                 // Keep the look-at point fixed relative to position so the
                 // camera translates without rotating.
                 self.direction = self.position - self.forward * self.focal_length;
+                self.direction = self.direction.rotate_around(0.01, self.up);
                 self.update_position(self.position, self.direction);
 
                 // Reset accumulation so the moved view starts fresh.
