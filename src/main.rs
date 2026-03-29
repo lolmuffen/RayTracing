@@ -76,7 +76,7 @@ fn main() {
     // Image dimensions and quality settings
     let width: i32 = 1080;                    // Full HD width
     let aspect_ratio: f32 = 16.0 / 9.0;       // Widescreen cinema aspect ratio
-    let fov = 120;                        // Wide field of view for dramatic perspective
+    let fov = 100;                        // Wide field of view for dramatic perspective
     let samples_per_pixel: u32 = 3;          // Anti-aliasing quality (higher = smoother)
     let max_depth: i32 = 8;                  // Maximum light bounces (higher = more accurate GI)
 

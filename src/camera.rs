@@ -169,6 +169,7 @@ impl Camera {
         let mut frame_count: u32 = 0;
         let frame_count_before_print = 10;
         let mut frame_time_average = Duration::new(0, 0);
+
         let move_speed: f32 = 0.1;
 
         while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -176,39 +177,53 @@ impl Camera {
             // --- Input handling ---
             let mut frame_dirty = false;
 
-            if window.is_key_down(Key::W) {
-                self.position = self.position - self.forward * move_speed;
-                frame_dirty = true;
+            let keys = window.get_keys();
+
+            for key in keys {
+                let m: Option<()> = match key {
+                    Key::W => {
+                        self.position -= self.forward * move_speed;
+                        self.direction -= self.forward * move_speed;
+                        Some(())
+                    },
+                    Key::A => {
+                        self.position -= self.right * move_speed;
+                        self.direction -= self.right * move_speed;
+                        Some(())
+                    },
+                    Key::S => {
+                        self.position += self.forward * move_speed;
+                        self.direction += self.forward * move_speed;
+                        Some(())
+                    },
+                    Key::D => {
+                        self.position += self.right * move_speed;
+                        self.direction += self.right * move_speed;
+                        Some(())
+                    },
+                    Key::Space => {
+                        self.position += self.up * move_speed;
+                        self.direction += self.up * move_speed;
+                        Some(())
+                    },
+                    Key::LeftShift => {
+                        self.position -= self.up * move_speed;
+                        self.direction -= self.up * move_speed;
+                        Some(())
+                    },
+                    _ => {None}
+                };
+
+                if let Some(_) = m {
+                    frame_dirty = true;
+                } 
             }
-            if window.is_key_down(Key::S) {
-                self.position = self.position + self.forward * move_speed;
-                frame_dirty = true;
-            }
-            if window.is_key_down(Key::A) {
-                self.position = self.position - self.right * move_speed;
-                frame_dirty = true;
-            }
-            if window.is_key_down(Key::D) {
-                self.position = self.position + self.right * move_speed;
-                frame_dirty = true;
-            }
-            if window.is_key_down(Key::Space) {
-                self.position = self.position + self.up * move_speed;
-                frame_dirty = true;
-            }
-            if window.is_key_down(Key::LeftShift) {
-                self.position = self.position - self.up * move_speed;
-                frame_dirty = true;
-            }
+
 
             if frame_dirty {
-                // Keep the look-at point fixed relative to position so the
-                // camera translates without rotating.
-                self.direction = self.position - self.forward * self.focal_length;
-                self.direction = self.direction.rotate_around(0.01, self.up);
+
                 self.update_position(self.position, self.direction);
 
-                // Reset accumulation so the moved view starts fresh.
                 accumulation_buffer.fill(Vec3::new(0.0, 0.0, 0.0));
                 pixel_buffer.fill(0);
                 total_samples = 0;

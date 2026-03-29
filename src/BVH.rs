@@ -158,10 +158,7 @@ impl sceneBVH {
             (None, None) => None,
         }
     }
-
-
 }
-
 
 
 pub struct BoundingBox {
