@@ -230,22 +230,7 @@ impl Camera {
                 frame_count = 0;
                 frame_time_average = Duration::new(0, 0);
             }
-
-            // --- Snapshot immutable camera state for the parallel render ---
-            // Rayon closures require Send + Sync; taking copies of the fields
-            // we need lets us borrow self immutably inside the closure while
-            // the mutable borrow from the key-handling above is already done.
-            let origin_pixel_upper_left = self.origin_pixel_upper_left;
-            let delta_u = self.delta_u;
-            let delta_v = self.delta_v;
-            let center = self.center;
-            let right = self.right;
-            let up = self.up;
-            let aperture_radius = self.aperture_radius;
-            let focus_distance = self.focus_distance;
-            let depth = self.depth;
-            let sun_direction = self.sun_direction;
-
+           
             frame_count += 1;
             let frame_start = Instant::now();
 
@@ -258,10 +243,10 @@ impl Camera {
                         for _ in 0..samples_this_frame {
                             let ray = Camera::get_sample_ray_raw(
                                 x as u32, y as u32,
-                                origin_pixel_upper_left, delta_u, delta_v,
-                                center, right, up, aperture_radius, focus_distance,
+                                self.origin_pixel_upper_left, self.delta_u, self.delta_v,
+                                self.center, self.right, self.up, self.aperture_radius, self.focus_distance,
                             );
-                            accumulated += Camera::path_pixel_color_raw(ray, depth, sun_direction);
+                            accumulated += Camera::path_pixel_color_raw(ray, self.depth, self.sun_direction);
                         }
                         row[x] = accumulated;
                     }

@@ -5,21 +5,10 @@ use crate::triangle::Triangle;
 use crate::vector::Vec3;
 use crate::utils::{moller_trumbore, get_GLOBAL};
 
-// =============================================================================
-// Transform
-// =============================================================================
 
-/// Affine transform stored on the mesh root. The BVH itself is built in the
-/// mesh's *local* space; at ray-test time we transform the ray into local space,
-/// run the normal traversal, then transform the resulting hit back to world space.
-///
-/// This means the BVH never needs to be rebuilt when you move or scale a mesh —
-/// only the two cheap transform calls per ray change.
 #[derive(Clone, Copy, Debug)]
 pub struct Transform {
-    /// World-space position of the mesh origin.
     pub position: Vec3,
-    /// Uniform scale factor (applied before translation).
     pub scale: f32,
 }
 
@@ -28,7 +17,6 @@ impl Transform {
         Self { position, scale }
     }
 
-    /// Identity transform: origin at (0,0,0), scale 1.
     pub fn identity() -> Self {
         Self { position: Vec3::new(0.0, 0.0, 0.0), scale: 1.0 }
     }
@@ -82,10 +70,6 @@ impl TriangleBVH {
         Self::new_transformed(triangles, Vec3::new(0.0, 0.0, 0.0), 1.0)
     }
 
-    /// Build a BVH over `triangles` and attach a world-space position and uniform scale.
-    ///
-    /// A **single** global object ID is claimed here for the root node.  Internal
-    /// child nodes and leaf triangles are not scene objects and use ID 0.
     pub fn new_transformed(triangles: &[Triangle], position: Vec3, scale: f32) -> Self {
         // Claim the one real scene-object ID *before* building the tree.
         // Triangle::new / new_with_normal no longer call next_object_id(), so
@@ -98,18 +82,15 @@ impl TriangleBVH {
         root
     }
 
-    /// Update the world-space position of the mesh without rebuilding the BVH.
     pub fn set_position(&mut self, position: Vec3) {
         self.transform.position = position;
     }
 
-    /// Update the uniform scale of the mesh without rebuilding the BVH.
     pub fn set_scale(&mut self, scale: f32) {
         self.transform.scale = scale;
     }
 
-    /// The world-space AABB of this mesh, derived from the local bounding box
-    /// and the current transform.  Used by the scene BVH.
+
     pub fn world_bounding_box(&self) -> BoundingBox {
         let t = &self.transform;
         BoundingBox {
@@ -121,6 +102,8 @@ impl TriangleBVH {
     // -------------------------------------------------------------------------
     // Internal recursive builder  (works entirely in local space)
     // -------------------------------------------------------------------------
+
+    
 
     fn build_recursive(triangles: &[Triangle], indices: &[usize], depth: usize, child_id: u32) -> Self {
         let mut bounding_box = BoundingBox::new_empty();
@@ -190,26 +173,23 @@ impl TriangleBVH {
         let local_direction = t.inverse_transform_direction(ray.direction);
         let local_ray = Ray::new(local_origin, local_direction, ray.color);
 
-        let local_hit = self.traverse_local(&local_ray, self.ID)?;  // pass root ID here
+        let local_hit = self.traverse_local(&local_ray, self.ID)?;
         Some(transform_intersection(local_hit, t))
     }
 
-    /// Internal recursive traversal; works entirely in the local coordinate frame.
-   fn traverse_local(&self, ray: &Ray, root_id: u32) -> Option<Intersection> {
-        if !self.bounding_box.hit(ray) {
-            return None;
-        }
+    fn traverse_local(&self, ray: &Ray, root_id: u32) -> Option<Intersection> {
 
+        //if misses bvh, return None
+        self.bounding_box.hit(ray)?;
+
+        //if leaf node, return the hit
         if let Some(tris) = &self.tris {
             let mut best_hit: Option<Hit> = None;
 
             for tri in tris {
                 if let Some((t, hit_point)) = moller_trumbore(ray, tri) {
                     if t > 0.001 {
-                        let is_better = match &best_hit {
-                            Some(bh) => t < bh.distance,
-                            None => true,
-                        };
+                        let is_better = best_hit.as_ref().map_or(true, |bh| t < bh.distance);
                         if is_better {
                             let front_face = ray.direction.dot(tri.normal) < 0.0;
                             let normal = if front_face { tri.normal } else { -tri.normal };
@@ -221,21 +201,50 @@ impl TriangleBVH {
 
             return best_hit.map(|h| Intersection::new(true, Some(h), Some(root_id)));
         }
+        let left_tmin  = self.left_child.as_ref()
+            .and_then(|c| c.bounding_box.hit(ray));
+        let right_tmin = self.right_child.as_ref()
+            .and_then(|c| c.bounding_box.hit(ray));
 
-        let left_hit  = self.left_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
-        let right_hit = self.right_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
+        // Swap so we always recurse into the nearer child first.
+        let (first, first_tmin, second, second_tmin) = match (left_tmin, right_tmin) {
+            (Some(lt), Some(rt)) if rt < lt => (
+                self.right_child.as_ref(), Some(rt),
+                self.left_child.as_ref(),  Some(lt),
+            ),
+            _ => (
+                self.left_child.as_ref(),  left_tmin,
+                self.right_child.as_ref(), right_tmin,
+            ),
+        };
 
-        match (left_hit, right_hit) {
-            (Some(l), Some(r)) => {
-                let ld = l.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                let rd = r.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                if ld <= rd { Some(l) } else { Some(r) }
+        let first_hit = first_tmin
+            .and_then(|_| first?.traverse_local(ray, ));
+
+        let skip_second = match (&first_hit, second_tmin) {
+            (Some(h), Some(st)) => h.hitdata.as_ref()
+                .map_or(false, |hd| hd.distance <= st),
+            _ => false,
+        };
+
+        let second_hit = if skip_second {
+            None
+        } else {
+            second_tmin.and_then(|_| second?.traverse(ray))
+        };
+
+        match (first_hit, second_hit) {
+            (Some(f), Some(s)) => {
+                let fd = f.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
+                let sd = s.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
+                if fd <= sd { Some(f) } else { Some(s) }
             }
-            (Some(l), None) => Some(l),
-            (None, Some(r)) => Some(r),
-            (None, None) => None,
+            (Some(f), None) => Some(f),
+            (None, Some(s)) => Some(s),
+            (None, None)    => None,
         }
     }
+
 }
 
 // =============================================================================
