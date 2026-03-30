@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
-use crate::utils::{Interval, get_GLOBAL};
+use crate::utils::{Axis, Interval, get_GLOBAL};
 use rayon::prelude::*;
 
 pub type Color = Vec3;
@@ -171,6 +171,7 @@ impl Camera {
         let mut frame_time_average = Duration::new(0, 0);
 
         let move_speed: f32 = 0.1;
+        let rotate_angle: f32 = 0.1;
 
         while window.is_open() && !window.is_key_down(Key::Escape) {
 
@@ -210,7 +211,8 @@ impl Camera {
                         self.position -= self.up * move_speed;
                         self.direction -= self.up * move_speed;
                         Some(())
-                    },
+                    }, 
+                    
                     _ => {None}
                 };
 
