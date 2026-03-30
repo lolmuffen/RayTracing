@@ -201,48 +201,26 @@ impl TriangleBVH {
 
             return best_hit.map(|h| Intersection::new(true, Some(h), Some(root_id)));
         }
-        let left_tmin  = self.left_child.as_ref()
-            .and_then(|c| c.bounding_box.hit(ray));
-        let right_tmin = self.right_child.as_ref()
-            .and_then(|c| c.bounding_box.hit(ray));
 
-        // Swap so we always recurse into the nearer child first.
-        let (first, first_tmin, second, second_tmin) = match (left_tmin, right_tmin) {
-            (Some(lt), Some(rt)) if rt < lt => (
-                self.right_child.as_ref(), Some(rt),
-                self.left_child.as_ref(),  Some(lt),
-            ),
-            _ => (
-                self.left_child.as_ref(),  left_tmin,
-                self.right_child.as_ref(), right_tmin,
-            ),
-        };
+        let left_hit  = self.left_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
+        let right_hit = self.right_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
 
-        let first_hit = first_tmin
-            .and_then(|_| first?.traverse_local(ray, ));
-
-        let skip_second = match (&first_hit, second_tmin) {
-            (Some(h), Some(st)) => h.hitdata.as_ref()
-                .map_or(false, |hd| hd.distance <= st),
-            _ => false,
-        };
-
-        let second_hit = if skip_second {
-            None
-        } else {
-            second_tmin.and_then(|_| second?.traverse(ray))
-        };
-
-        match (first_hit, second_hit) {
-            (Some(f), Some(s)) => {
-                let fd = f.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                let sd = s.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                if fd <= sd { Some(f) } else { Some(s) }
+        match (left_hit, right_hit) {
+            (Some(l), Some(r)) => {
+                let ld = l.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
+                let rd = r.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
+                if ld <= rd { Some(l) } else { Some(r) }
             }
-            (Some(f), None) => Some(f),
-            (None, Some(s)) => Some(s),
-            (None, None)    => None,
+            (Some(l), None) => Some(l),
+            (None, Some(r)) => Some(r),
+            (None, None) => None,
         }
+    }
+
+    /// Returns the entry t-value of the ray against this node's bounding box,
+    /// or `None` if the ray misses. Useful for sorted child traversal.
+    pub fn get_internal_hit_t(&self, ray: &Ray) -> Option<f32> {
+        self.bounding_box.hit(ray)
     }
 
 }
