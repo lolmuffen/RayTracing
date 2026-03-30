@@ -189,7 +189,7 @@ impl TriangleBVH {
             for tri in tris {
                 if let Some((t, hit_point)) = moller_trumbore(ray, tri) {
                     if t > 0.001 {
-                        let is_better = best_hit.as_ref().map_or(true, |bh| t < bh.distance);
+                        let is_better = best_hit.as_ref().is_none_or(|bh| t < bh.distance);
                         if is_better {
                             let front_face = ray.direction.dot(tri.normal) < 0.0;
                             let normal = if front_face { tri.normal } else { -tri.normal };

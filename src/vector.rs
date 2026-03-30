@@ -4,7 +4,7 @@
 //! for ray tracing including dot products, cross products, normalization,
 //! and random vector generation for Monte Carlo sampling.
 
-use crate::utils::{Axis, random_double, random_double_range};
+use crate::utils::{random_double, random_double_range};
 
 /// A 3D vector with x, y, z components.
 ///

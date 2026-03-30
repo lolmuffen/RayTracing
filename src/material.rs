@@ -99,10 +99,8 @@ impl Material {
                 };
                 let cos_theta = (-ray_in.direction.normalize()).dot(outward_normal).min(1.0);
                 let refracted = Self::refract(ray_in.direction, outward_normal, ni_over_nt);
-                let reflect_prob = refracted
-                    .is_some()
-                    .then(|| Self::schlick_reflectance(cos_theta, refraction_index))
-                    .unwrap_or(1.0);
+                let reflect_prob = if refracted
+                    .is_some() { Self::schlick_reflectance(cos_theta, refraction_index) } else { 1.0 };
 
                 let direction = if random_double() < reflect_prob {
                     Self::reflect(ray_in.direction, outward_normal)

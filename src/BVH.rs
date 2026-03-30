@@ -110,7 +110,7 @@ impl sceneBVH {
                         if let Some(h) = inter.hitdata {
                             if h.distance > 0.001 {
                                 let is_better = best_hit.as_ref()
-                                    .map_or(true, |bh| h.distance < bh.distance);
+                                    .is_none_or(|bh| h.distance < bh.distance);
                                 if is_better {
                                     best_obj_id = inter.object_id;
                                     best_hit = Some(h);
@@ -147,7 +147,7 @@ impl sceneBVH {
 
         let skip_second = match (&first_hit, second_tmin) {
             (Some(h), Some(st)) => h.hitdata.as_ref()
-                .map_or(false, |hd| hd.distance <= st),
+                .is_some_and(|hd| hd.distance <= st),
             _ => false,
         };
 

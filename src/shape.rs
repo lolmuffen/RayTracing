@@ -84,7 +84,7 @@ impl Shape {
                                                 let inv_det = 1.0 / det;
                                                 let s = ray.origin - tri.p1;
                                                 let u = inv_det * s.dot(ray_cross_e2);
-                                                if u < 0.0 || u > 1.0 {
+                                                if !(0.0..=1.0).contains(&u) {
                                                     return Intersection { hit: false, hitdata: None, object_id: None };
                                                 }
 
@@ -100,10 +100,10 @@ impl Shape {
                                                     let intersection_point = ray.origin + ray.direction * t;
                                                     let front_face = ray.direction.dot(tri.normal) < 0.0;
                                                     let normal = if front_face { tri.normal } else { -tri.normal };
-                                                    return Intersection { hit: true, hitdata: Some(Hit::new(t, intersection_point, normal, front_face)), object_id: Some(tri.id) };
+                                                    Intersection { hit: true, hitdata: Some(Hit::new(t, intersection_point, normal, front_face)), object_id: Some(tri.id) }
                                                 }
                                                 else { // This means that there is a line intersection but not a ray intersection.
-                                                    return Intersection { hit: false, hitdata: None, object_id: None };
+                                                    Intersection { hit: false, hitdata: None, object_id: None }
                                                 }
             }
 
@@ -159,7 +159,7 @@ impl Shape {
             Self::Triangle { tri } => {let max_x = tri.p1.x.max(tri.p2.x).max(tri.p3.x);
                                                 let max_y = tri.p1.y.max(tri.p2.y).max(tri.p3.y);
                                                 let max_z = tri.p1.z.max(tri.p2.z).max(tri.p3.z);
-                                                return Vec3::new(max_x, max_y, max_z)
+                                                Vec3::new(max_x, max_y, max_z)
         },
             Self::TriangleMesh { tri_mesh } => tri_mesh.world_bounding_box().max,
         }

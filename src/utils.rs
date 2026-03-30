@@ -32,7 +32,7 @@ pub fn moller_trumbore(ray: &Ray, tri: &Triangle) -> Option<(f32, Vec3)> {
     let inv_det = 1.0 / det;
     let s = ray.origin - tri.p1;
     let u = inv_det * s.dot(h);
-    if u < 0.0 || u > 1.0 {
+    if !(0.0..=1.0).contains(&u) {
         return None;
     }
 
@@ -58,13 +58,13 @@ pub fn moller_trumbore(ray: &Ray, tri: &Triangle) -> Option<(f32, Vec3)> {
 pub fn random_double() -> f32 {
     let mut rng = rand::rng();
     let x: f32 = rng.random();
-    return x;
+    x
 }
 
 pub fn random_double_range(min: f32, max: f32) -> f32 {
     let mut rng = rand::rng();
     let y: f32 = rng.random_range(min..max);
-    return y;
+    y
 }
 
 /// Generates a random 2D offset within a unit square for anti-aliasing.

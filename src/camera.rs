@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 use crate::{utils::sample_unit_square, vector::Vec3};
 use crate::ray::Ray;
 use minifb::{Key, Window, WindowOptions};
-use crate::utils::{Axis, Interval, get_GLOBAL};
+use crate::utils::{Interval, get_GLOBAL};
 use rayon::prelude::*;
 
 pub type Color = Vec3;
@@ -31,7 +31,7 @@ impl Color {
         let gbyte = (INTENSITY.clamp(g) * 256.0) as u8;
         let bbyte = (INTENSITY.clamp(b) * 256.0) as u8;
         
-        return (rbyte, gbyte, bbyte);
+        (rbyte, gbyte, bbyte)
     }
 
     pub fn color_to_hex(color: (u8, u8, u8)) -> u32 {
@@ -216,7 +216,7 @@ impl Camera {
                     _ => {None}
                 };
 
-                if let Some(_) = m {
+                if m.is_some() {
                     frame_dirty = true;
                 } 
             }
@@ -271,7 +271,7 @@ impl Camera {
             let frame_time = frame_start.elapsed();
             frame_time_average += frame_time;
 
-            if frame_count % frame_count_before_print == 0 {
+            if frame_count.is_multiple_of(frame_count_before_print) {
                 println!(
                     "Frame {frame_count} | Total samples: {total_samples} | \
                     Avg frame time: {}ms",
