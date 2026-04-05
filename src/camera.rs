@@ -171,7 +171,6 @@ impl Camera {
         let mut frame_time_average = Duration::new(0, 0);
 
         let move_speed: f32 = 0.1;
-        let rotate_angle: f32 = 0.1;
 
         while window.is_open() && !window.is_key_down(Key::Escape) {
 

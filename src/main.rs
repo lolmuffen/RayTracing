@@ -70,8 +70,8 @@ fn main() {
 
 
     // Set global state with our scene objects and lights for access during rendering
-    get_GLOBAL().set_objects(objects);
-    get_GLOBAL().scene.set(crate::BVH::sceneBVH::new());
+    let _ = get_GLOBAL().set_objects(objects);
+    let _ = get_GLOBAL().scene.set(crate::BVH::sceneBVH::new());
 
     // Image dimensions and quality settings
     let width: i32 = 1080;                    // Full HD width
