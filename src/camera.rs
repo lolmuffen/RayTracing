@@ -212,6 +212,28 @@ impl Camera {
                         self.direction -= self.up * move_speed;
                         Some(())
                     }, 
+                    Key::Up => {
+                        if self.direction.dot(self.up) < 0.99 {
+                            self.direction = self.direction.rotate_around(self.right, rotate_angle);
+                            Some(())
+                        }
+                        else {
+                            println!("No UP");
+                            None
+                        }
+                        
+                    }
+                    Key::Down => {
+                        if self.direction.dot(-self.up) < 0.99 {
+                            self.direction = self.direction.rotate_around(self.right, -rotate_angle);
+                            Some(())
+                        }
+                        else {
+                            println!("No Down");
+                            None
+                        }
+                    }
+                    
                     
                     _ => {None}
                 };

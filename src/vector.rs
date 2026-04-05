@@ -202,6 +202,16 @@ impl Vec3 {
         }
     }
 
+    pub fn rotate_around(&self, axis: Vec3, angle: f32) -> Vec3 {
+        let axis_norm = axis.normalize();
+        let cos_theta = angle.cos();
+        let sin_theta = angle.sin();
+
+        *self * cos_theta
+            + axis_norm.cross(*self) * sin_theta
+            + axis_norm * (axis_norm.dot(*self)) * (1.0 - cos_theta)
+    }
+
 }
 
 // Operator overloads for more natural mathematical syntax
