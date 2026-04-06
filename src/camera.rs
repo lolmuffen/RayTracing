@@ -51,7 +51,6 @@ pub struct Camera {
     pub fov: u32,
     pub samples_per_pixel: u32,
     pub depth: u32,
-    pub center: Vec3,
     pub origin_pixel_upper_left: Vec3,
     pub delta_u: Vec3,
     pub delta_v: Vec3,
@@ -100,7 +99,6 @@ impl Camera {
             fov,
             samples_per_pixel: samples,
             depth: num_bounces,
-            center,
             origin_pixel_upper_left,
             delta_u,
             delta_v,
@@ -117,7 +115,6 @@ impl Camera {
     pub fn update_position(&mut self, position: Vec3, direction: Vec3) {
         self.position = position;
         self.direction = direction;
-        self.center = position;
 
         let (width, height) = self.resolution;
 
@@ -140,7 +137,7 @@ impl Camera {
         self.delta_u = viewport_u / width as f32;
         self.delta_v = viewport_v / height as f32;
 
-        let viewport_upper_left = self.center
+        let viewport_upper_left = self.position
             - (self.forward * self.focal_length)
             - (viewport_u / 2.0)
             - (viewport_v / 2.0);
@@ -213,27 +210,26 @@ impl Camera {
                         Some(())
                     }, 
                     Key::Up => {
-                        if self.direction.dot(self.up) < 0.99 {
-                            self.direction = self.direction.rotate_around(self.right, rotate_angle);
+                        let look_vec = self.direction - self.position;
+                        if look_vec.normalize().dot(self.up) < 0.99 {
+                            let rotated = look_vec.rotate_around(self.right, rotate_angle);
+                            self.direction = self.position + rotated;
                             Some(())
-                        }
-                        else {
-                            println!("No UP");
+                        } else {
                             None
                         }
-                        
                     },
                     Key::Down => {
-                        if self.direction.dot(-self.up) < 0.99 {
-                            self.direction = self.direction.rotate_around(self.right, -rotate_angle);
+                        let look_vec = self.direction - self.position;
+                        if look_vec.normalize().dot(self.up) > -0.99 {
+                            let rotated = look_vec.rotate_around(-self.right, rotate_angle);
+                            self.direction = self.position + rotated;
                             Some(())
-                        }
-                        else {
-                            println!("No Down");
+                        } else {
                             None
                         }
-                    }
-                    
+                    },
+                                        
                     
                     _ => {None}
                 };
@@ -245,6 +241,7 @@ impl Camera {
 
 
             if frame_dirty {
+                println!("{}", self.direction.length());
 
                 self.update_position(self.position, self.direction);
 
@@ -268,7 +265,7 @@ impl Camera {
                             let ray = Camera::get_sample_ray_raw(
                                 x as u32, y as u32,
                                 self.origin_pixel_upper_left, self.delta_u, self.delta_v,
-                                self.center, self.right, self.up, self.aperture_radius, self.focus_distance,
+                                self.position, self.right, self.up, self.aperture_radius, self.focus_distance,
                             );
                             accumulated += Camera::path_pixel_color_raw(ray, self.depth, self.sun_direction);
                         }
