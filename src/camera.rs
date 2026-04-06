@@ -229,7 +229,7 @@ impl Camera {
                             None
                         }
                     },
-                                        
+                               
                     
                     _ => {None}
                 };
@@ -241,8 +241,6 @@ impl Camera {
 
 
             if frame_dirty {
-                println!("{}", self.direction.length());
-
                 self.update_position(self.position, self.direction);
 
                 accumulation_buffer.fill(Vec3::new(0.0, 0.0, 0.0));
