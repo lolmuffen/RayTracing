@@ -222,7 +222,7 @@ impl Camera {
                             None
                         }
                         
-                    }
+                    },
                     Key::Down => {
                         if self.direction.dot(-self.up) < 0.99 {
                             self.direction = self.direction.rotate_around(self.right, -rotate_angle);
