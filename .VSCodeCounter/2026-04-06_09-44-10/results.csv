@@ -1,0 +1,16 @@
+"filename", "language", "Rust", "XML", "comment", "blank", "total"
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\flamegraph.svg", "XML", 0, 474, 0, 17, 491
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\BVH.rs", "Rust", 197, 0, 18, 41, 256
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\camera.rs", "Rust", 303, 0, 3, 63, 369
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\intersection.rs", "Rust", 29, 0, 0, 5, 34
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\main.rs", "Rust", 45, 0, 31, 27, 103
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\material.rs", "Rust", 152, 0, 13, 25, 190
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\objectloader.rs", "Rust", 181, 0, 65, 40, 286
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\ray.rs", "Rust", 13, 0, 0, 7, 20
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\shape.rs", "Rust", 143, 0, 3, 32, 178
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\sphere.rs", "Rust", 8, 0, 0, 3, 11
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\triangle.rs", "Rust", 28, 0, 6, 4, 38
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\triangle_bvh.rs", "Rust", 159, 0, 43, 44, 246
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\utils.rs", "Rust", 132, 0, 31, 44, 207
+"c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\vector.rs", "Rust", 191, 0, 41, 45, 277
+"Total", "-", 1581, 474, 254, 397, 2706

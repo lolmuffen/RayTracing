@@ -1,0 +1,41 @@
+Date : 2026-04-06 09:44:10
+Directory : c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing
+Total : 14 files,  2055 codes, 254 comments, 397 blanks, all 2706 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Rust     |         13 |      1,581 |        254 |        380 |      2,215 |
+| XML      |          1 |        474 |          0 |         17 |        491 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                           | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                              |         14 |      2,055 |        254 |        397 |      2,706 |
+| . (Files)                                                                      |          1 |        474 |          0 |         17 |        491 |
+| src                                                                            |         13 |      1,581 |        254 |        380 |      2,215 |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                       | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\flamegraph.svg      | XML      |        474 |          0 |         17 |        491 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\BVH.rs          | Rust     |        197 |         18 |         41 |        256 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\camera.rs       | Rust     |        303 |          3 |         63 |        369 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\intersection.rs | Rust     |         29 |          0 |          5 |         34 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\main.rs         | Rust     |         45 |         31 |         27 |        103 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\material.rs     | Rust     |        152 |         13 |         25 |        190 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\objectloader.rs | Rust     |        181 |         65 |         40 |        286 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\ray.rs          | Rust     |         13 |          0 |          7 |         20 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\shape.rs        | Rust     |        143 |          3 |         32 |        178 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\sphere.rs       | Rust     |          8 |          0 |          3 |         11 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\triangle.rs     | Rust     |         28 |          6 |          4 |         38 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\triangle_bvh.rs | Rust     |        159 |         43 |         44 |        246 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\utils.rs        | Rust     |        132 |         31 |         44 |        207 |
+| c:\Users\rafel\OneDrive\Desktop\VSCode Projects\RayTracing\src\vector.rs       | Rust     |        191 |         41 |         45 |        277 |
+| Total                                                                          |          |      2,055 |        254 |        397 |      2,706 |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
