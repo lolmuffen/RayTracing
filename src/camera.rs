@@ -229,6 +229,20 @@ impl Camera {
                             None
                         }
                     },
+                    Key::Left => {
+                        let look_vec = self.direction - self.position;
+                        let rotated = look_vec.rotate_around(self.up, rotate_angle);
+                        self.direction = self.position + rotated;
+
+                        Some(())
+                    },
+                    Key::Right => {
+                        let look_vec = self.direction - self.position;
+                        let rotated = look_vec.rotate_around(-self.up, rotate_angle);
+                        self.direction = self.position + rotated;
+
+                        Some(())
+                    },
                                
                     
                     _ => {None}

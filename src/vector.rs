@@ -212,6 +212,12 @@ impl Vec3 {
             + axis_norm * (axis_norm.dot(*self)) * (1.0 - cos_theta)
     }
 
+    pub fn get_flat_forward(&self) -> Vec3 {
+        let dirx = self.x;
+        let diry = self.y;
+        Vec3::new(dirx, diry, 0.0).normalize()
+    }
+
 }
 
 // Operator overloads for more natural mathematical syntax
