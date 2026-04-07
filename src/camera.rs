@@ -180,23 +180,23 @@ impl Camera {
             for key in keys {
                 let m: Option<()> = match key {
                     Key::W => {
-                        self.position -= self.forward * move_speed;
-                        self.direction -= self.forward * move_speed;
+                        self.position -= self.forward.get_flat_forward() * move_speed;
+                        self.direction -= self.forward.get_flat_forward() * move_speed;
                         Some(())
                     },
                     Key::A => {
-                        self.position -= self.right * move_speed;
-                        self.direction -= self.right * move_speed;
+                        self.position -= self.right.get_flat_forward() * move_speed;
+                        self.direction -= self.right.get_flat_forward() * move_speed;
                         Some(())
                     },
                     Key::S => {
-                        self.position += self.forward * move_speed;
-                        self.direction += self.forward * move_speed;
+                        self.position += self.forward.get_flat_forward() * move_speed;
+                        self.direction += self.forward.get_flat_forward() * move_speed;
                         Some(())
                     },
                     Key::D => {
-                        self.position += self.right * move_speed;
-                        self.direction += self.right * move_speed;
+                        self.position += self.right.get_flat_forward() * move_speed;
+                        self.direction += self.right.get_flat_forward() * move_speed;
                         Some(())
                     },
                     Key::Space => {

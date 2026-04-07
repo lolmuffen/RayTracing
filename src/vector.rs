@@ -214,8 +214,8 @@ impl Vec3 {
 
     pub fn get_flat_forward(&self) -> Vec3 {
         let dirx = self.x;
-        let diry = self.y;
-        Vec3::new(dirx, diry, 0.0).normalize()
+        let dirz = self.z;
+        Vec3::new(dirx, 0.0, dirz).normalize()
     }
 
 }
