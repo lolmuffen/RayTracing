@@ -61,6 +61,7 @@ pub struct Camera {
     pub right: Vec3,
     pub up: Vec3,
     pub sun_direction: Vec3,
+    pub world_up: Vec3,
 }
 
 impl Camera {
@@ -91,6 +92,7 @@ impl Camera {
         let origin_pixel_upper_left = viewport_upper_left + (delta_u * 0.5) + (delta_v * 0.5);
 
         let aperture_radius = aperture / 2.0;
+        let world_up = Vec3::new(0.0, 1.0, 0.0);
         
         Camera {
             position,
@@ -109,6 +111,7 @@ impl Camera {
             right,
             up,
             sun_direction: sun_direction.normalize(),
+            world_up,
         }
     }
 
@@ -200,18 +203,18 @@ impl Camera {
                         Some(())
                     },
                     Key::Space => {
-                        self.position += self.up * move_speed;
-                        self.direction += self.up * move_speed;
+                        self.position += self.world_up * move_speed;
+                        self.direction += self.world_up * move_speed;
                         Some(())
                     },
                     Key::LeftShift => {
-                        self.position -= self.up * move_speed;
-                        self.direction -= self.up * move_speed;
+                        self.position -= self.world_up * move_speed;
+                        self.direction -= self.world_up * move_speed;
                         Some(())
                     }, 
                     Key::Up => {
                         let look_vec = self.direction - self.position;
-                        if look_vec.normalize().dot(self.up) < 0.99 {
+                        if look_vec.normalize().dot(self.world_up) < 0.99 {
                             let rotated = look_vec.rotate_around(self.right, rotate_angle);
                             self.direction = self.position + rotated;
                             Some(())
@@ -221,7 +224,7 @@ impl Camera {
                     },
                     Key::Down => {
                         let look_vec = self.direction - self.position;
-                        if look_vec.normalize().dot(self.up) > -0.99 {
+                        if look_vec.normalize().dot(self.world_up) > -0.99 {
                             let rotated = look_vec.rotate_around(-self.right, rotate_angle);
                             self.direction = self.position + rotated;
                             Some(())
