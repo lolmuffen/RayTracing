@@ -1,87 +1,129 @@
-use crate::BVH::BoundingBox;
-use crate::intersection::{Hit, Intersection};
-use crate::ray::Ray;
-use crate::triangle::Triangle;
-use crate::vector::Vec3;
-use crate::utils::{moller_trumbore, get_GLOBAL};
+use crate::{BVH::BoundingBox, intersection::{Hit, Intersection}, ray::Ray, triangle::Triangle, utils::{Transform, get_GLOBAL}, vector::Vec3};
 
 
-#[derive(Clone, Copy, Debug)]
-pub struct Transform {
-    pub position: Vec3,
-    pub scale: f32,
-}
-
-impl Transform {
-    pub fn new(position: Vec3, scale: f32) -> Self {
-        Self { position, scale }
-    }
-
-    pub fn identity() -> Self {
-        Self { position: Vec3::new(0.0, 0.0, 0.0), scale: 1.0 }
-    }
-
-    // -------------------------------------------------------------------------
-    // Forward transforms  (local → world)
-    // -------------------------------------------------------------------------
-
-    pub fn transform_point(&self, p: Vec3) -> Vec3 {
-        p * self.scale + self.position
-    }
-
-    pub fn transform_normal(&self, n: Vec3) -> Vec3 {
-        // For a uniform scale the normal transform is the same as the point
-        // transform (no translation, divide by scale² cancels to 1/scale which
-        // re-normalises anyway).  We just need to renormalise after.
-        (n / self.scale).normalize()
-    }
-
-    // -------------------------------------------------------------------------
-    // Inverse transforms  (world → local)
-    // -------------------------------------------------------------------------
-
-    pub fn inverse_transform_point(&self, p: Vec3) -> Vec3 {
-        (p - self.position) / self.scale
-    }
-
-    pub fn inverse_transform_direction(&self, d: Vec3) -> Vec3 {
-        // Directions are not translated; only scale applies.
-        d / self.scale
-    }
-}
-
-// =============================================================================
-// TriangleBVH
-// =============================================================================
 
 pub struct TriangleBVH {
     pub ID: u32,
-    pub bounding_box: BoundingBox,   // always in *local* space
-    pub left_child: Option<Box<TriangleBVH>>,
-    pub right_child: Option<Box<TriangleBVH>>,
-    pub tris: Option<Vec<Triangle>>, // leaf node owns its triangles
-    /// Only meaningful on the root node; children ignore it.
+    pub nodes: Vec<TBVHNodeType>,
+    pub bounding_box: BoundingBox,
     pub transform: Transform,
 }
 
 impl TriangleBVH {
-    /// Build a BVH over `triangles` with an identity transform (position = origin, scale = 1).
     pub fn new(triangles: &[Triangle]) -> Self {
-        Self::new_transformed(triangles, Vec3::new(0.0, 0.0, 0.0), 1.0)
+        Self::build(triangles, Vec3::new(0.0, 0.0, 0.0), 1.0)
     }
 
-    pub fn new_transformed(triangles: &[Triangle], position: Vec3, scale: f32) -> Self {
-        // Claim the one real scene-object ID *before* building the tree.
-        // Triangle::new / new_with_normal no longer call next_object_id(), so
-        // nothing inside build_recursive will consume IDs.
-        let root_id = get_GLOBAL().next_object_id();
-        let indices: Vec<usize> = (0..triangles.len()).collect();
-        let mut root = TriangleBVH::build_recursive(triangles, &indices, 0, 0);
-        root.ID = root_id;
-        root.transform = Transform::new(position, scale);
+    pub fn new_with_transform(triangles: &[Triangle], pos: Vec3, scale: f32) -> Self {
+        Self::build(triangles, pos, scale)
+    }
+
+
+    pub fn build(triangles: &[Triangle], position: Vec3, scale: f32) -> Self {
+        let mut root = TriangleBVH { 
+            ID: get_GLOBAL().next_object_id(), 
+            nodes: Vec::new(), 
+            bounding_box: BoundingBox::new_empty(), 
+            transform: Transform::new(position, scale),
+        };
+
+        root.fill_nodes_recursive(triangles.to_vec(), 0);
+
         root
+
     }
 
+    pub fn fill_nodes_recursive(&mut self, triangles: Vec<Triangle>, depth: usize) -> u32 {
+
+        for tri in &triangles {
+            self.bounding_box.grow_to_fit_triangle(tri);
+        }
+
+        if depth >= 20 || triangles.len() <= 2 {
+            self.nodes.push(TBVHNodeType::leaf(depth as u32, triangles));
+            return (self.nodes.len() - 1) as u32;
+        }
+
+        let centroid = (self.bounding_box.min + self.bounding_box.max) * 0.5;
+        let size = self.bounding_box.max - self.bounding_box.min;
+        let principal_axis = if size.x >= size.y && size.x >= size.z {
+            Vec3::new(1.0, 0.0, 0.0)
+        } else if size.y >= size.z {
+            Vec3::new(0.0, 1.0, 0.0)
+        } else {
+            Vec3::new(0.0, 0.0, 1.0)
+        };
+
+        let mut sorted_tris = triangles;
+        sorted_tris.sort_by(|a, b| {
+            let a_centroid = (a.p1 + a.p2 + a.p3) / 3.0;
+            let b_centroid = (b.p1 + b.p2 + b.p3) / 3.0;
+            let a_proj = a_centroid.dot(principal_axis);
+            let b_proj = b_centroid.dot(principal_axis);
+            a_proj.partial_cmp(&b_proj).unwrap()
+        });
+
+        let mid = sorted_tris.len() / 2;
+        let left_tris = sorted_tris[..mid].to_vec();
+        let right_tris = sorted_tris[mid..].to_vec();
+
+        let left_child_id = self.fill_nodes_recursive(left_tris, depth + 1);
+        let right_child_id = self.fill_nodes_recursive(right_tris, depth + 1);
+
+        self.nodes.push(TBVHNodeType::node(left_child_id, right_child_id));
+        (self.nodes.len() - 1) as u32
+
+    }
+
+    pub fn traverse(&self, ray: &Ray) -> Option<Intersection> {
+        if self.world_bounding_box().hit(ray).is_none() {
+            return None;
+        }
+
+        let local_ray = Ray::new(
+            (ray.origin - self.transform.position) / self.transform.scale,
+            ray.direction / self.transform.scale,
+            ray.color
+        );
+
+        let mut closest: Option<Intersection> = None;
+
+        let mut stack = vec![0]; // Start with root node index
+
+        while let Some(node_index) = stack.pop() {
+            match &self.nodes[node_index as usize] {
+                TBVHNodeType::TBVHNode(node) => {
+                    // Internal node: push children onto stack
+                    stack.push(node.right_child);
+                    stack.push(node.left_child); // Left child
+                }
+                TBVHNodeType::TBVHLeaf(leaf) => {
+                    // Leaf node: check all triangles for intersection
+                    for tri in &leaf.tris {
+                        if let Some(intersection) = tri.intersect(&local_ray) {
+                            if let Some(hit) = &intersection.hitdata {
+                                let world_t = hit.distance * self.transform.scale;
+                                if world_t <= 0.001 { continue; } // skip if too close or behind
+                                let world_hit_point = hit.hit_point * self.transform.scale + self.transform.position;
+                                let world_normal = hit.normal / self.transform.scale;
+                                let adjusted_hit = Hit::new_with_material(world_t, world_hit_point, world_normal, hit.front_face, hit.material.clone().unwrap());
+                                let adjusted_intersection = Intersection::new(true, Some(adjusted_hit), Some(self.ID));
+                                if closest.is_none() || world_t < closest.as_ref().unwrap().hitdata.as_ref().unwrap().distance {
+                                    closest = Some(adjusted_intersection);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        closest
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    // utils
+    //////////////////////////////////////////////////////////////////////////////
+    
     pub fn set_position(&mut self, position: Vec3) {
         self.transform.position = position;
     }
@@ -89,7 +131,6 @@ impl TriangleBVH {
     pub fn set_scale(&mut self, scale: f32) {
         self.transform.scale = scale;
     }
-
 
     pub fn world_bounding_box(&self) -> BoundingBox {
         let t = &self.transform;
@@ -99,148 +140,42 @@ impl TriangleBVH {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Internal recursive builder  (works entirely in local space)
-    // -------------------------------------------------------------------------
-
-    
-
-    fn build_recursive(triangles: &[Triangle], indices: &[usize], depth: usize, child_id: u32) -> Self {
-        let mut bounding_box = BoundingBox::new_empty();
-
-        for &i in indices {
-            bounding_box.grow_to_fit_triangle(&triangles[i]);
-        }
-
-        if depth >= 20 || indices.len() <= 2 {
-            let leaf_tris = indices.iter().map(|&i| triangles[i].clone()).collect();
-            return TriangleBVH {
-                bounding_box,
-                left_child: None,
-                right_child: None,
-                tris: Some(leaf_tris),
-                ID: child_id,
-                transform: Transform::identity(),
-            };
-        }
-
-        let centroid = (bounding_box.min + bounding_box.max) * 0.5;
-
-        let size = bounding_box.max - bounding_box.min;
-        let principal_axis = if size.x >= size.y && size.x >= size.z {
-            Vec3::new(1.0, 0.0, 0.0)
-        } else if size.y >= size.z {
-            Vec3::new(0.0, 1.0, 0.0)
-        } else {
-            Vec3::new(0.0, 0.0, 1.0)
-        };
-
-        let mut sorted_indices = indices.to_vec();
-        sorted_indices.sort_by(|&a, &b| {
-            let ca = (triangles[a].p1 + triangles[a].p2 + triangles[a].p3) * (1.0 / 3.0);
-            let cb = (triangles[b].p1 + triangles[b].p2 + triangles[b].p3) * (1.0 / 3.0);
-            let proj_a = (ca - centroid).dot(principal_axis);
-            let proj_b = (cb - centroid).dot(principal_axis);
-            proj_a.partial_cmp(&proj_b).unwrap_or(std::cmp::Ordering::Equal)
-        });
-
-        let mid = sorted_indices.len() / 2;
-        let left_child  = Box::new(TriangleBVH::build_recursive(triangles, &sorted_indices[..mid],  depth + 1, 1));
-        let right_child = Box::new(TriangleBVH::build_recursive(triangles, &sorted_indices[mid..], depth + 1, 2));
-
-        TriangleBVH {
-            bounding_box,
-            left_child: Some(left_child),
-            right_child: Some(right_child),
-            tris: None,
-            ID: child_id,
-            transform: Transform::identity(),
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Public traversal entry point  (root call only)
-    // -------------------------------------------------------------------------
-
-    /// Intersect a world-space ray against the mesh.
-    ///
-    /// The ray is transformed into local space, the internal BVH is traversed
-    /// in local space, and the resulting hit point + normal are transformed back
-    /// to world space before returning.
-    pub fn traverse(&self, ray: &Ray) -> Option<Intersection> {
-        let t = &self.transform;
-        let local_origin    = t.inverse_transform_point(ray.origin);
-        let local_direction = t.inverse_transform_direction(ray.direction);
-        let local_ray = Ray::new(local_origin, local_direction, ray.color);
-
-        let local_hit = self.traverse_local(&local_ray, self.ID)?;
-        Some(transform_intersection(local_hit, t))
-    }
-
-    fn traverse_local(&self, ray: &Ray, root_id: u32) -> Option<Intersection> {
-
-        //if misses bvh, return None
-        self.bounding_box.hit(ray)?;
-
-        //if leaf node, return the hit
-        if let Some(tris) = &self.tris {
-            let mut best_hit: Option<Hit> = None;
-
-            for tri in tris {
-                if let Some((t, hit_point)) = moller_trumbore(ray, tri) {
-                    if t > 0.001 {
-                        let is_better = best_hit.as_ref().is_none_or(|bh| t < bh.distance);
-                        if is_better {
-                            let front_face = ray.direction.dot(tri.normal) < 0.0;
-                            let normal = if front_face { tri.normal } else { -tri.normal };
-                            best_hit = Some(Hit::new_with_material(t, hit_point, normal, front_face, tri.material));
-                        }
-                    }
-                }
-            }
-
-            return best_hit.map(|h| Intersection::new(true, Some(h), Some(root_id)));
-        }
-
-        let left_hit  = self.left_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
-        let right_hit = self.right_child.as_ref().and_then(|c| c.traverse_local(ray, root_id));
-
-        match (left_hit, right_hit) {
-            (Some(l), Some(r)) => {
-                let ld = l.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                let rd = r.hitdata.as_ref().map(|h| h.distance).unwrap_or(f32::INFINITY);
-                if ld <= rd { Some(l) } else { Some(r) }
-            }
-            (Some(l), None) => Some(l),
-            (None, Some(r)) => Some(r),
-            (None, None) => None,
-        }
-    }
-
-    /// Returns the entry t-value of the ray against this node's bounding box,
-    /// or `None` if the ray misses. Useful for sorted child traversal.
-    pub fn get_internal_hit_t(&self, ray: &Ray) -> Option<f32> {
-        self.bounding_box.hit(ray)
-    }
-
 }
 
-// =============================================================================
-// Helper: transform a local-space Intersection back to world space
-// =============================================================================
 
-fn transform_intersection(mut inter: Intersection, t: &Transform) -> Intersection {
-    if let Some(ref mut hit) = inter.hitdata {
-        hit.hit_point = t.transform_point(hit.hit_point);
-        hit.normal = t.transform_normal(hit.normal);
-        
-        // The local ray direction was divided by scale, so the parametric t
-        // was computed against a direction |d|/scale, meaning t_local corresponds
-        // to a world distance of t_local * (|local_dir| / |world_dir|)
-        // For uniform scale: t_world = t_local (NOT t_local * scale)
-        // The direction shrinks by 1/scale, so t grows by scale — they cancel out.
-        // Remove the scale multiplication entirely:
-        // hit.distance *= t.scale;  <-- DELETE THIS LINE
+pub struct TBVHNode {
+    pub left_child: u32,
+    pub right_child: u32,
+}
+
+impl TBVHNode {
+    pub fn new(left_child: u32, right_child: u32) -> Self {
+        TBVHNode {left_child, right_child}
     }
-    inter
+}
+
+pub struct TBVHLeaf {
+    pub internal_ID: u32,
+    pub tris: Vec<Triangle>,
+}
+
+impl TBVHLeaf {
+    pub fn new(id: u32, tris: Vec<Triangle>) -> Self {
+        TBVHLeaf { internal_ID: id, tris }
+    }
+}
+
+pub enum TBVHNodeType {
+    TBVHLeaf(TBVHLeaf),
+    TBVHNode(TBVHNode),
+}
+
+impl TBVHNodeType {
+    pub fn leaf(id: u32, tris: Vec<Triangle>) -> Self {
+        TBVHNodeType::TBVHLeaf(TBVHLeaf::new(id, tris))
+    }
+
+    pub fn node(left_child: u32, right_child: u32) -> Self {
+        TBVHNodeType::TBVHNode(TBVHNode::new(left_child, right_child))
+    }
 }

@@ -197,11 +197,55 @@ pub fn get_GLOBAL() -> &'static Global {
 }
 
 // =============================================================================
-// rotation axis utils
+// rotation axis and transform utils 
 // =============================================================================
 
 pub enum Axis {
     X, 
     Y,
     Z,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Transform {
+    pub position: Vec3,
+    pub scale: f32,
+}
+
+impl Transform {
+    pub fn new(position: Vec3, scale: f32) -> Self {
+        Self { position, scale }
+    }
+
+    pub fn identity() -> Self {
+        Self { position: Vec3::new(0.0, 0.0, 0.0), scale: 1.0 }
+    }
+
+    // -------------------------------------------------------------------------
+    // Forward transforms  (local → world)
+    // -------------------------------------------------------------------------
+
+    pub fn transform_point(&self, p: Vec3) -> Vec3 {
+        p * self.scale + self.position
+    }
+
+    pub fn transform_normal(&self, n: Vec3) -> Vec3 {
+        // For a uniform scale the normal transform is the same as the point
+        // transform (no translation, divide by scale² cancels to 1/scale which
+        // re-normalises anyway).  We just need to renormalise after.
+        (n / self.scale).normalize()
+    }
+
+    // -------------------------------------------------------------------------
+    // Inverse transforms  (world → local)
+    // -------------------------------------------------------------------------
+
+    pub fn inverse_transform_point(&self, p: Vec3) -> Vec3 {
+        (p - self.position) / self.scale
+    }
+
+    pub fn inverse_transform_direction(&self, d: Vec3) -> Vec3 {
+        // Directions are not translated; only scale applies.
+        d / self.scale
+    }
 }

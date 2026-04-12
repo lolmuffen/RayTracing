@@ -34,7 +34,7 @@ impl Shape {
     }
 
     pub fn triangle_mesh(tris: &[Triangle], position: Vec3, scale: f32) -> Shape {
-        Shape::TriangleMesh { tri_mesh: TriangleBVH::new_transformed(tris, position, scale)}
+        Shape::TriangleMesh { tri_mesh: TriangleBVH::build(tris, position, scale)}
     }
 
 
