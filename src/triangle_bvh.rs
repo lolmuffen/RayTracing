@@ -27,6 +27,10 @@ impl TriangleBVH {
             transform: Transform::new(position, scale),
         };
 
+        for tri in triangles {
+            root.bounding_box.grow_to_fit_triangle(tri);
+        }
+
         root.fill_nodes_recursive(triangles.to_vec(), 0);
 
         root
@@ -34,18 +38,20 @@ impl TriangleBVH {
     }
 
     pub fn fill_nodes_recursive(&mut self, triangles: Vec<Triangle>, depth: usize) -> u32 {
+        let mut new_bounding_box = BoundingBox::new_empty();
 
         for tri in &triangles {
-            self.bounding_box.grow_to_fit_triangle(tri);
+            new_bounding_box.grow_to_fit_triangle(tri);
         }
 
         if depth >= 20 || triangles.len() <= 2 {
-            self.nodes.push(TBVHNodeType::leaf(depth as u32, triangles));
+
+            self.nodes.push(TBVHNodeType::leaf(depth as u32, triangles, new_bounding_box));
             return (self.nodes.len() - 1) as u32;
         }
 
-        let centroid = (self.bounding_box.min + self.bounding_box.max) * 0.5;
-        let size = self.bounding_box.max - self.bounding_box.min;
+        let centroid = (new_bounding_box.min + new_bounding_box.max) * 0.5;
+        let size = new_bounding_box.max - new_bounding_box.min;
         let principal_axis = if size.x >= size.y && size.x >= size.z {
             Vec3::new(1.0, 0.0, 0.0)
         } else if size.y >= size.z {
@@ -67,10 +73,10 @@ impl TriangleBVH {
         let left_tris = sorted_tris[..mid].to_vec();
         let right_tris = sorted_tris[mid..].to_vec();
 
-        let left_child_id = self.fill_nodes_recursive(left_tris, depth + 1);
         let right_child_id = self.fill_nodes_recursive(right_tris, depth + 1);
+        let left_child_id = self.fill_nodes_recursive(left_tris, depth + 1);
 
-        self.nodes.push(TBVHNodeType::node(left_child_id, right_child_id));
+        self.nodes.push(TBVHNodeType::node(depth as u32, right_child_id, new_bounding_box));
         (self.nodes.len() - 1) as u32
 
     }
@@ -83,42 +89,80 @@ impl TriangleBVH {
         let local_ray = Ray::new(
             (ray.origin - self.transform.position) / self.transform.scale,
             ray.direction / self.transform.scale,
-            ray.color
+            ray.color,
         );
 
-        let mut closest: Option<Intersection> = None;
+        if self.nodes.is_empty() {
+            return None;
+        }
 
-        let mut stack = vec![0]; // Start with root node index
+        let mut stack = Vec::with_capacity(64);
+        let mut best_hit: Option<Intersection> = None;
+        let mut best_distance = f32::INFINITY;
+
+        stack.push(self.nodes.len() - 1);
 
         while let Some(node_index) = stack.pop() {
-            match &self.nodes[node_index as usize] {
-                TBVHNodeType::TBVHNode(node) => {
-                    // Internal node: push children onto stack
-                    stack.push(node.right_child);
-                    stack.push(node.left_child); // Left child
-                }
+            let node = &self.nodes[node_index];
+            let node_bb = node.bounding_box();
+
+            let node_tmin = match node_bb.hit(&local_ray) {
+                Some(t) => t,
+                None => continue,
+            };
+
+            if node_tmin >= best_distance {
+                continue;
+            }
+
+            match node {
                 TBVHNodeType::TBVHLeaf(leaf) => {
-                    // Leaf node: check all triangles for intersection
                     for tri in &leaf.tris {
                         if let Some(intersection) = tri.intersect(&local_ray) {
-                            if let Some(hit) = &intersection.hitdata {
-                                let world_t = hit.distance * self.transform.scale;
-                                if world_t <= 0.001 { continue; } // skip if too close or behind
-                                let world_hit_point = hit.hit_point * self.transform.scale + self.transform.position;
-                                let world_normal = hit.normal / self.transform.scale;
-                                let adjusted_hit = Hit::new_with_material(world_t, world_hit_point, world_normal, hit.front_face, hit.material.clone().unwrap());
-                                let adjusted_intersection = Intersection::new(true, Some(adjusted_hit), Some(self.ID));
-                                if closest.is_none() || world_t < closest.as_ref().unwrap().hitdata.as_ref().unwrap().distance {
-                                    closest = Some(adjusted_intersection);
+                            if let Some(hit) = intersection.hitdata.as_ref() {
+                                if hit.distance > 0.001 && hit.distance < best_distance {
+                                    best_distance = hit.distance;
+                                    best_hit = Some(intersection);
                                 }
                             }
                         }
                     }
                 }
+                TBVHNodeType::TBVHNode(internal) => {
+                    let right_index = internal.right_child as usize;
+                    let left_index = node_index - 1;
+
+                    let left_t = self.nodes[left_index].bounding_box().hit(&local_ray);
+                    let right_t = self.nodes[right_index].bounding_box().hit(&local_ray);
+
+                    let push_child = |stack: &mut Vec<usize>, idx: usize, tmin: f32, best_distance: f32| {
+                        if tmin < best_distance {
+                            stack.push(idx);
+                        }
+                    };
+
+                    match (left_t, right_t) {
+                        (Some(lt), Some(rt)) => {
+                            if lt <= rt {
+                                push_child(&mut stack, right_index, rt, best_distance);
+                                push_child(&mut stack, left_index, lt, best_distance);
+                            } else {
+                                push_child(&mut stack, left_index, lt, best_distance);
+                                push_child(&mut stack, right_index, rt, best_distance);
+                            }
+                        }
+                        (Some(lt), None) => push_child(&mut stack, left_index, lt, best_distance),
+                        (None, Some(rt)) => push_child(&mut stack, right_index, rt, best_distance),
+                        (None, None) => {}
+                    }
+                }
             }
         }
-        closest
+
+        best_hit
     }
+
+    
 
     //////////////////////////////////////////////////////////////////////////////
     // utils
@@ -144,24 +188,26 @@ impl TriangleBVH {
 
 
 pub struct TBVHNode {
-    pub left_child: u32,
+    internal_ID: u32,
     pub right_child: u32,
+    pub bounding_box: BoundingBox,
 }
 
 impl TBVHNode {
-    pub fn new(left_child: u32, right_child: u32) -> Self {
-        TBVHNode {left_child, right_child}
+    pub fn new(id: u32, right_child: u32, bb: BoundingBox) -> Self {
+        TBVHNode {internal_ID: id, right_child, bounding_box: bb}
     }
 }
 
 pub struct TBVHLeaf {
     pub internal_ID: u32,
     pub tris: Vec<Triangle>,
+    pub bounding_box: BoundingBox,
 }
 
 impl TBVHLeaf {
-    pub fn new(id: u32, tris: Vec<Triangle>) -> Self {
-        TBVHLeaf { internal_ID: id, tris }
+    pub fn new(id: u32, tris: Vec<Triangle>, bb: BoundingBox) -> Self {
+        TBVHLeaf { internal_ID: id, tris, bounding_box: bb }
     }
 }
 
@@ -171,11 +217,25 @@ pub enum TBVHNodeType {
 }
 
 impl TBVHNodeType {
-    pub fn leaf(id: u32, tris: Vec<Triangle>) -> Self {
-        TBVHNodeType::TBVHLeaf(TBVHLeaf::new(id, tris))
+    pub fn leaf(id: u32, tris: Vec<Triangle>, bb: BoundingBox) -> Self {
+        TBVHNodeType::TBVHLeaf(TBVHLeaf::new(id, tris, bb))
     }
 
-    pub fn node(left_child: u32, right_child: u32) -> Self {
-        TBVHNodeType::TBVHNode(TBVHNode::new(left_child, right_child))
+    pub fn node(id: u32, right_child: u32, bb: BoundingBox) -> Self {
+        TBVHNodeType::TBVHNode(TBVHNode::new(id, right_child, bb))
+    }
+
+    pub fn bounding_box(&self) -> &BoundingBox {
+        match self {
+            TBVHNodeType::TBVHLeaf(leaf) => &leaf.bounding_box,
+            TBVHNodeType::TBVHNode(node) => &node.bounding_box,
+        }
+    }
+
+    pub fn id (&self) -> u32 {
+        match self {
+            TBVHNodeType::TBVHLeaf(leaf) => leaf.internal_ID,
+            TBVHNodeType::TBVHNode(_) => 0, // Internal nodes don't have a scene object ID
+        }
     }
 }
