@@ -1,4 +1,8 @@
-use crate::{BVH::BoundingBox, intersection::{Hit, Intersection}, ray::Ray, triangle::Triangle, utils::{Transform, get_GLOBAL}, vector::Vec3};
+use crate::intersection::{Hit, Intersection};
+use crate::ray::Ray; 
+use crate::triangle::Triangle; 
+use crate::utils::{Transform, get_GLOBAL, BoundingBox}; 
+use crate::vector::Vec3;
 
 
 
@@ -31,13 +35,13 @@ impl TriangleBVH {
             root.bounding_box.grow_to_fit_triangle(tri);
         }
 
-        root.fill_nodes_recursive(triangles.to_vec(), 0);
+        root.build_recusive(triangles.to_vec(), 0);
 
         root
 
     }
 
-    pub fn fill_nodes_recursive(&mut self, triangles: Vec<Triangle>, depth: usize) -> u32 {
+    pub fn build_recusive(&mut self, triangles: Vec<Triangle>, depth: usize) -> u32 {
         let mut new_bounding_box = BoundingBox::new_empty();
 
         for tri in &triangles {
@@ -73,8 +77,8 @@ impl TriangleBVH {
         let left_tris = sorted_tris[..mid].to_vec();
         let right_tris = sorted_tris[mid..].to_vec();
 
-        let right_child_id = self.fill_nodes_recursive(right_tris, depth + 1);
-        let left_child_id = self.fill_nodes_recursive(left_tris, depth + 1);
+        let right_child_id = self.build_recusive(right_tris, depth + 1);
+        let left_child_id = self.build_recusive(left_tris, depth + 1);
 
         self.nodes.push(TBVHNodeType::node(depth as u32, right_child_id, new_bounding_box));
         (self.nodes.len() - 1) as u32

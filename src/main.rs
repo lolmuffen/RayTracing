@@ -96,8 +96,3 @@ fn main() {
     
     cam.render();
 }
-
-
-// pub fn main() {
-//     println!("hello world");
-// }

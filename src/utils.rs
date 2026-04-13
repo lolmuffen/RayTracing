@@ -249,3 +249,93 @@ impl Transform {
         d / self.scale
     }
 }
+
+
+//////////////////////////////////////////////////////
+/// bounding box
+/////////////////////////////////////////////////////
+
+
+pub struct BoundingBox {
+    pub min: Vec3,
+    pub max: Vec3,
+}
+
+impl BoundingBox {
+    pub fn new(min: Vec3, max: Vec3) -> Self {
+        BoundingBox { min, max }
+    }
+
+    pub fn new_empty() -> Self {
+        BoundingBox {
+            min: Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+            max: Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY),
+        }
+    }
+
+    /// Slab-method AABB / ray intersection test.
+    ///
+    /// Returns `Some(tmin)` — the parametric entry distance — when the ray hits
+    /// this box at any positive t, or `None` on a miss / fully-behind-origin box.
+    /// The returned `tmin` can be used to sort child nodes by distance for
+    /// nearest-first BVH traversal.
+    pub fn hit(&self, ray: &Ray) -> Option<f32> {
+        let mut tmin = f32::NEG_INFINITY;
+        let mut tmax = f32::INFINITY;
+
+        let mut t0 = (self.min.x - ray.origin.x) * ray.inv_dir.x;
+        let mut t1 = (self.max.x - ray.origin.x) * ray.inv_dir.x;
+        if t0 > t1 { std::mem::swap(&mut t0, &mut t1); }
+        tmin = tmin.max(t0);
+        tmax = tmax.min(t1);
+        if tmax < tmin { return None; }
+
+        let mut t0 = (self.min.y - ray.origin.y) * ray.inv_dir.y;
+        let mut t1 = (self.max.y - ray.origin.y) * ray.inv_dir.y;
+        if t0 > t1 { std::mem::swap(&mut t0, &mut t1); }
+        tmin = tmin.max(t0);
+        tmax = tmax.min(t1);
+        if tmax < tmin { return None; }
+
+        let mut t0 = (self.min.z - ray.origin.z) * ray.inv_dir.z;
+        let mut t1 = (self.max.z - ray.origin.z) * ray.inv_dir.z;
+        if t0 > t1 { std::mem::swap(&mut t0, &mut t1); }
+        tmin = tmin.max(t0);
+        tmax = tmax.min(t1);
+        if tmax < tmin { return None; }
+
+        // Box is behind the ray origin
+        if tmax < 0.0 { return None; }
+
+        Some(tmin.max(0.0))
+    }
+
+    pub fn grow_to_fit(&mut self, new_shape_id: u32) {
+        if let Some(shape) = get_GLOBAL().get_object_by_id(new_shape_id) {
+            let shape_min = shape.get_min_bounds();
+            let shape_max = shape.get_max_bounds();
+            if self.min.x > shape_min.x { self.min.x = shape_min.x; }
+            if self.min.y > shape_min.y { self.min.y = shape_min.y; }
+            if self.min.z > shape_min.z { self.min.z = shape_min.z; }
+            if self.max.x < shape_max.x { self.max.x = shape_max.x; }
+            if self.max.y < shape_max.y { self.max.y = shape_max.y; }
+            if self.max.z < shape_max.z { self.max.z = shape_max.z; }
+        }
+    }
+
+    pub fn grow_to_fit_triangle(&mut self, tri: &Triangle) {
+        let min_x = tri.p1.x.min(tri.p2.x).min(tri.p3.x);
+        let min_y = tri.p1.y.min(tri.p2.y).min(tri.p3.y);
+        let min_z = tri.p1.z.min(tri.p2.z).min(tri.p3.z);
+        let max_x = tri.p1.x.max(tri.p2.x).max(tri.p3.x);
+        let max_y = tri.p1.y.max(tri.p2.y).max(tri.p3.y);
+        let max_z = tri.p1.z.max(tri.p2.z).max(tri.p3.z);
+        if self.min.x > min_x { self.min.x = min_x; }
+        if self.min.y > min_y { self.min.y = min_y; }
+        if self.min.z > min_z { self.min.z = min_z; }
+        if self.max.x < max_x { self.max.x = max_x; }
+        if self.max.y < max_y { self.max.y = max_y; }
+        if self.max.z < max_z { self.max.z = max_z; }
+    }
+
+}
