@@ -131,7 +131,7 @@ pub struct Global {
     pub global_object_id: AtomicU32,
     pub global_object_list: OnceLock<Vec<Shape>>,
     pub BVH_DEPTH_LIMIT: usize,
-    pub scene: OnceLock<sceneBVH>,
+    pub scene: OnceLock<sceneBVH<'static>>,
 }
 
 impl Global {
