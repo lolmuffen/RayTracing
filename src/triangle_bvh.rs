@@ -80,7 +80,7 @@ impl TriangleBVH {
         let right_child_id = self.build_recusive(right_tris, depth + 1);
         let left_child_id = self.build_recusive(left_tris, depth + 1);
 
-        self.nodes.push(TBVHNodeType::node(depth as u32, right_child_id, new_bounding_box));
+        self.nodes.push(TBVHNodeType::node(right_child_id, new_bounding_box));
         (self.nodes.len() - 1) as u32
 
     }
@@ -192,26 +192,25 @@ impl TriangleBVH {
 
 
 pub struct TBVHNode {
-    internal_ID: u32,
+
     pub right_child: u32,
     pub bounding_box: BoundingBox,
 }
 
 impl TBVHNode {
-    pub fn new(id: u32, right_child: u32, bb: BoundingBox) -> Self {
-        TBVHNode {internal_ID: id, right_child, bounding_box: bb}
+    pub fn new(right_child: u32, bb: BoundingBox) -> Self {
+        TBVHNode {right_child, bounding_box: bb}
     }
 }
 
 pub struct TBVHLeaf {
-    pub internal_ID: u32,
     pub tris: Vec<Triangle>,
     pub bounding_box: BoundingBox,
 }
 
 impl TBVHLeaf {
-    pub fn new(id: u32, tris: Vec<Triangle>, bb: BoundingBox) -> Self {
-        TBVHLeaf { internal_ID: id, tris, bounding_box: bb }
+    pub fn new(tris: Vec<Triangle>, bb: BoundingBox) -> Self {
+        TBVHLeaf {tris, bounding_box: bb }
     }
 }
 
@@ -222,11 +221,11 @@ pub enum TBVHNodeType {
 
 impl TBVHNodeType {
     pub fn leaf(id: u32, tris: Vec<Triangle>, bb: BoundingBox) -> Self {
-        TBVHNodeType::TBVHLeaf(TBVHLeaf::new(id, tris, bb))
+        TBVHNodeType::TBVHLeaf(TBVHLeaf::new(tris, bb))
     }
 
-    pub fn node(id: u32, right_child: u32, bb: BoundingBox) -> Self {
-        TBVHNodeType::TBVHNode(TBVHNode::new(id, right_child, bb))
+    pub fn node(right_child: u32, bb: BoundingBox) -> Self {
+        TBVHNodeType::TBVHNode(TBVHNode::new(right_child, bb))
     }
 
     pub fn bounding_box(&self) -> &BoundingBox {
@@ -238,7 +237,7 @@ impl TBVHNodeType {
 
     pub fn id (&self) -> u32 {
         match self {
-            TBVHNodeType::TBVHLeaf(leaf) => leaf.internal_ID,
+            TBVHNodeType::TBVHLeaf(_) => 1,
             TBVHNodeType::TBVHNode(_) => 0, // Internal nodes don't have a scene object ID
         }
     }

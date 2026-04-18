@@ -316,7 +316,6 @@ impl Camera {
         }
     }
 
-    // Free function version used inside rayon closure (no &self borrow needed).
     fn get_sample_ray_raw(
         i: u32, j: u32,
         origin_pixel_upper_left: Vec3,
@@ -345,7 +344,6 @@ impl Camera {
         Ray::new(ray_origin, final_direction, Color::new(1.0, 1.0, 1.0))
     }
 
-    // Free function version used inside rayon closure (no &self borrow needed).
     fn path_pixel_color_raw(mut current_ray: Ray, depth: u32, sun_direction: Vec3) -> Color {
         let global = get_GLOBAL();
         let scene = global.get_scene();
